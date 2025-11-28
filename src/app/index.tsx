@@ -183,10 +183,7 @@ export default function HomeScreen() {
       const json = await res.json();
       if (json.error) throw new Error(json.error);
 
-      const latestStudents = json.students.slice(0, 30); // top 30 newest
-      console.log("LATEST STUDENTS:", latestStudents)
-
-      setStudentsDashboard(latestStudents);
+      setStudentsDashboard(json.students);
     } catch (error) {
       console.error("Error fetching students:", error.message);
     }
