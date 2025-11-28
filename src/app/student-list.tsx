@@ -375,7 +375,7 @@ export default function StudentListScreen() {
                   ))
               ) : (
                 <SafeAreaView style={styles.loadingSafeArea}>
-                  <ActivityIndicator size="large" color="#004A7C" />
+                  <Text>No students found.</Text>
                 </SafeAreaView>
               )}
             </ScrollView>

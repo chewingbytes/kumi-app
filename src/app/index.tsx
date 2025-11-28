@@ -11,7 +11,6 @@ import * as DocumentPicker from "expo-document-picker";
 import { supabase } from "../../lib/supabase";
 import Constants from "expo-constants";
 const API = Constants.expoConfig?.extra?.EXPO_PUBLIC_API_BASE;
-console.log("API:", API);
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
   View,
@@ -41,7 +40,7 @@ export default function HomeScreen() {
   const [parentNumber, setParentNumber] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [successNotifications, setSuccessNotifications] = useState<
-    { id: number; message: string }[]
+    { id: number; message: string; color: string }[]
   >([]);
   const [loading, setLoading] = useState(false);
   const [studentsDashboard, setStudentsDashboard] = useState([]);
@@ -154,10 +153,6 @@ export default function HomeScreen() {
     body: object,
     accessToken: string
   ) => {
-    console.log("querying:", path);
-    console.log("with body:", body);
-    console.log("querying th efucking shit:", API + path);
-    console.log("TEOKEN:", accessToken);
     const res = await fetch(API + path, {
       method: "POST",
       headers: {
@@ -187,7 +182,11 @@ export default function HomeScreen() {
       });
       const json = await res.json();
       if (json.error) throw new Error(json.error);
-      setStudentsDashboard(json.students);
+
+      const latestStudents = json.students.slice(0, 30); // top 30 newest
+      console.log("LATEST STUDENTS:", latestStudents)
+
+      setStudentsDashboard(latestStudents);
     } catch (error) {
       console.error("Error fetching students:", error.message);
     }
@@ -199,7 +198,10 @@ export default function HomeScreen() {
     const id = notificationIdRef.current++;
     const message = `Sending to ${studentName}'s parents...`;
 
-    setSuccessNotifications((prev) => [...prev, { id, message }]);
+    setSuccessNotifications((prev) => [
+      ...prev,
+      { id, message, color: "#ECECEC" },
+    ]);
 
     setTimeout(() => {
       setSuccessNotifications((prev) =>
@@ -217,7 +219,10 @@ export default function HomeScreen() {
         ? `Message sent successfully to ${studentName}'s parents!`
         : "An error occurred";
 
-    setSuccessNotifications((prev) => [...prev, { id, message }]);
+    setSuccessNotifications((prev) => [
+      ...prev,
+      { id, message, color: "#D4EDDA" },
+    ]);
 
     // auto-hide after 3 seconds
     setTimeout(() => {
@@ -331,14 +336,6 @@ export default function HomeScreen() {
 
   const dashboardScrollRef = useRef<ScrollView>(null);
 
-  useEffect(() => {
-    if (dashboardScrollRef.current) {
-      dashboardScrollRef.current.scrollToEnd({ animated: true });
-    }
-
-    console.log("STUDNETDASHBORD:", studentsDashboard);
-  }, [studentsDashboard]);
-
   if (!fontsLoaded) {
     return null;
   } else {
@@ -447,7 +444,8 @@ export default function HomeScreen() {
                   ))
               ) : (
                 <SafeAreaView style={styles.loadingSafeArea}>
-                  <ActivityIndicator size="large" color="#004A7C" />
+                  {/* <ActivityIndicator size="large" color="#004A7C" /> */}
+                  <Text>No students found.</Text>
                 </SafeAreaView>
               )}
             </ScrollView>
@@ -494,16 +492,16 @@ export default function HomeScreen() {
                 <Pressable onPress={() => router.push("/profile")}>
                   <Text style={styles.dropdownItem}>My Profile</Text>
                 </Pressable>
-                <Pressable onPress={() => router.push("/my-students")}>
+                {/* <Pressable onPress={() => router.push("/my-students")}>
                   <Text style={styles.dropdownItem}>My Students</Text>
-                </Pressable>
+                </Pressable> */}
                 <Pressable
                   onPress={() => {
                     router.push("/student-management");
                     setDropdownVisible(false);
                   }}
                 >
-                  <Text style={styles.dropdownItem}>Student Management</Text>
+                  <Text style={styles.dropdownItem}>Your Students</Text>
                 </Pressable>
                 {/* <Pressable
                   onPress={() => {
@@ -533,92 +531,6 @@ export default function HomeScreen() {
                 </Pressable>
               </View>
             )}
-
-            {/* Modal */}
-            <Modal visible={modalVisible} animationType="slide">
-              <SafeAreaView style={styles.modalContainer}>
-                {/* Header */}
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Add Students</Text>
-                  <TouchableOpacity
-                    onPress={() => setModalVisible(false)}
-                    style={styles.modalCloseBtn}
-                  >
-                    <Text style={styles.modalCloseText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Content */}
-                <ScrollView contentContainerStyle={styles.modalContent}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Student Name"
-                    value={studentName}
-                    onChangeText={setStudentName}
-                    placeholderTextColor="#1F3C88"
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Parent's Number"
-                    value={parentNumber}
-                    onChangeText={setParentNumber}
-                    placeholderTextColor="#1F3C88"
-                  />
-
-                  <Pressable style={styles.addButton} onPress={addStudent}>
-                    <Text style={styles.addButtonText}>Add</Text>
-                  </Pressable>
-
-                  {/* Students List */}
-                  {students.length > 0 &&
-                    students.map((s, i) => (
-                      <View key={i} style={styles.studentItem}>
-                        <View style={styles.studentRow}>
-                          <View>
-                            <Text style={styles.studentName}>{s.name}</Text>
-                            <Text style={styles.studentParentLabel}>
-                              Number: {s.parentNumber}
-                            </Text>
-                          </View>
-                          <TouchableOpacity
-                            style={styles.removeButton}
-                            onPress={() =>
-                              setStudents((prev) =>
-                                prev.filter((_, idx) => idx !== i)
-                              )
-                            }
-                          >
-                            <Text style={styles.removeButtonText}>✕</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ))}
-
-                  {/* CSV & Submit Buttons */}
-                  <View style={styles.buttonRow}>
-                    <Pressable
-                      style={[styles.uploadCSVButton, { flex: 1 }]}
-                      onPress={pickedCSV ? uploadPickedCSV : handlePickCSV}
-                      disabled={uploading}
-                    >
-                      <Text style={styles.uploadCsvText}>
-                        {uploading
-                          ? "Uploading..."
-                          : pickedCSV
-                          ? `Upload: ${csvFileName}`
-                          : "Import CSV"}
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.primaryButton, { flex: 1 }]}
-                      onPress={submitStudents}
-                    >
-                      <Text style={styles.primaryButtonText}>Submit</Text>
-                    </Pressable>
-                  </View>
-                </ScrollView>
-              </SafeAreaView>
-            </Modal>
           </View>
         </View>
         <View
@@ -635,7 +547,7 @@ export default function HomeScreen() {
               style={{
                 marginTop: index * 10, // stack them vertically
                 width: 280,
-                backgroundColor: "#D4EDDA",
+                backgroundColor: notif.color,
                 borderColor: "#155724",
                 borderWidth: 2,
                 borderRadius: 12,

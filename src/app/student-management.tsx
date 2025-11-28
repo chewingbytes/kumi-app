@@ -1,7 +1,8 @@
 // MyStudentsScreen.js
-import { useEffect, useState } from "react";
-import { toast } from 'sonner-native';
+import { useEffect, useRef, useState } from "react";
+// import { toast } from "sonner-native";
 import { router } from "expo-router";
+import * as DocumentPicker from "expo-document-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
@@ -15,6 +16,9 @@ import {
   Image,
   Modal,
   Alert,
+  Pressable,
+  Platform,
+  Animated,
 } from "react-native";
 import { supabase } from "../../lib/supabase";
 import Constants from "expo-constants";
@@ -26,7 +30,17 @@ export default function MyStudentsScreen() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Add Student Modal
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newStudentName, setNewStudentName] = useState("");
+  const [newParentNumber, setNewParentNumber] = useState("");
+  const [students, setStudents] = useState([]);
+
   const [parentNumber, setParentNumber] = useState("");
+
+  const [successNotifications, setSuccessNotifications] = useState<
+    { id: number; message: string; color: string }[]
+  >([]);
 
   // Edit modal state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -35,6 +49,46 @@ export default function MyStudentsScreen() {
   // Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
+
+  const [uploading, setUploading] = useState(false);
+  const [pickedCSV, setPickedCSV] = useState(null);
+  const [csvFileName, setCsvFileName] = useState(null);
+
+  const notificationIdRef = useRef(0);
+
+  const showStatusNotification = (message: string) => {
+    const id = notificationIdRef.current++;
+
+    setSuccessNotifications((prev) => [
+      ...prev,
+      { id, message, color: "#ECECEC" },
+    ]);
+
+    setTimeout(() => {
+      setSuccessNotifications((prev) =>
+        prev.filter((notif) => notif.id !== id)
+      );
+    }, 3000);
+
+    return id; // return the id so we can remove/replace it later
+  };
+
+  const showSuccessNotification = (notificationString: string) => {
+    const id = notificationIdRef.current++; // persist ID between renders
+    const message = notificationString;
+
+    setSuccessNotifications((prev) => [
+      ...prev,
+      { id, message, color: "#D4EDDA" },
+    ]);
+
+    // auto-hide after 3 seconds
+    setTimeout(() => {
+      setSuccessNotifications((prev) =>
+        prev.filter((notif) => notif.id !== id)
+      );
+    }, 3000);
+  };
 
   /** FETCH STUDENTS */
   const fetchStudents = async () => {
@@ -68,51 +122,156 @@ export default function MyStudentsScreen() {
     fetchStudents();
   }, []);
 
-  /** OPEN EDIT POPUP */
-  const openEditModal = async (student) => {
-    console.log("TRIGGER OPEN EDIT MODEL");
+  const handlePickCSV = async () => {
     try {
-      setEditingStudent({ ...student });
-      setShowEditModal(true);
+      const result = await DocumentPicker.getDocumentAsync({
+        type: Platform.OS === "android" ? "*/*" : "text/csv",
+        copyToCacheDirectory: true,
+      });
 
+      if (
+        result.canceled === false &&
+        result.assets &&
+        result.assets.length > 0
+      ) {
+        const fileAsset = result.assets[0];
+
+        const file = {
+          uri: fileAsset.uri,
+          name: fileAsset.name,
+          type: fileAsset.mimeType || "text/csv",
+        };
+
+        setPickedCSV(file); // Set your local file state
+        setCsvFileName(file.name); // Optional: for display
+      }
+    } catch (err) {
+      Alert.alert("Pick Error", err.message);
+    }
+  };
+
+  const uploadPickedCSV = async () => {
+    if (!pickedCSV) {
+      console.log("No file picked!");
+      return Alert.alert("No file", "Please pick a CSV file first.");
+    }
+
+    setUploading(true);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+
+      // Convert blob URI to File object
+      const response = await fetch(pickedCSV.uri);
+      const blob = await response.blob();
+
+      const formData = new FormData();
+      formData.append(
+        "file",
+        new File([blob], pickedCSV.name, { type: pickedCSV.type })
+      );
+
+      const res = await fetch(API + "api/db/upload-csv", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: formData,
+      });
+
+      const json = await res.json();
+      setUploading(false);
+      setPickedCSV(null);
+      setCsvFileName(null);
+
+      if (json.error) {
+        Alert.alert("Upload Error", json.error);
+      } else {
+        // toast("CSV uploaded and processed!");
+        fetchStudents();
+        setShowAddModal(false);
+      }
+    } catch (err) {
+      setUploading(false);
+      Alert.alert("Error", err.message);
+    }
+  };
+
+  const openEditModal = (student) => {
+    console.log("OPEN EDIT MODAL");
+
+    setEditingStudent(student);
+
+    setParentNumber(student.parents?.phone_number?.toString() || "");
+
+    setShowEditModal(true);
+  };
+
+  const addStudent = () => {
+    const name = newStudentName.trim();
+    const number = newParentNumber.trim();
+
+    if (!name || !number) {
+      showStatusNotification("Name and number required.");
+      return;
+    }
+
+    const phoneRegex = /^\d{8}$/; // exactly 8 digits
+    if (!phoneRegex.test(newParentNumber)) {
+      showStatusNotification(
+        "Please enter a valid 8-digit Singaporean phone number."
+      );
+      return;
+    }
+
+    setStudents((prev) => [...prev, { name: name, parentNumber: number }]);
+    setNewStudentName("");
+    setNewParentNumber("");
+  };
+
+  const submitStudents = async () => {
+    showStatusNotification(`Adding new students...`);
+    if (!students.length) {
+      showSuccessNotification(`No students to add`);
+      return;
+    }
+
+    try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
       const accessToken = session?.access_token;
 
-      // Fetch parent number
-      const res = await fetch(API + "api/db/get-parent-number", {
+      console.log("SNEDING REQUEST:", API + "api/db/students");
+
+      const res = await fetch(API + "api/db/students", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({
-          student_name: student.name,
-          parent_id: student.parent_id,
-        }),
+        body: JSON.stringify({ students }),
       });
-
       const json = await res.json();
-      console.log("JSON:", json);
+      if (json.error) throw new Error(json.error);
 
-      if (json.error) {
-        console.error(json.error);
-        setParentNumber("");
-        return;
-      }
-
-      // Put the fetched parent number into the field
-      setParentNumber(json.parent_number || "");
+      setStudents([]);
+      setShowAddModal(false);
+      showSuccessNotification(`Successfully added new students!`);
+      fetchStudents();
     } catch (err) {
-      console.error("Error fetching parent number:", err.message);
+      showSuccessNotification(`Failed to add new students`);
     }
   };
 
   /** SAVE EDITED STUDENT */
   const saveEditedStudent = async () => {
     try {
+      showStatusNotification(`Updating ${editingStudent.name}...`);
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -137,19 +296,25 @@ export default function MyStudentsScreen() {
       const json = await res.json();
       if (json.error) throw new Error(json.error);
 
-      // Update local student list
       setStudentsDashboard((prev) =>
         prev.map((s) =>
           s.id === editingStudent.id
-            ? { ...s, name: editingStudent.name, parent_number: parentNumber }
+            ? {
+                ...s,
+                name: editingStudent.name,
+                parents: {
+                  ...s.parents,
+                  phone_number: parentNumber,
+                },
+              }
             : s
         )
       );
 
-      toast(`Updated ${editingStudent.name}!`)
+      showSuccessNotification(`Successfully Updated ${editingStudent.name}!`);
       setShowEditModal(false);
     } catch (err) {
-      Alert.alert("Error", err.message);
+      showSuccessNotification(`Failed to Updated ${editingStudent.name}!`);
     }
   };
 
@@ -162,21 +327,31 @@ export default function MyStudentsScreen() {
   /** DELETE STUDENT CONFIRM */
   const deleteStudent = async () => {
     try {
+      showStatusNotification(`Deleting ${studentToDelete.name}...`);
+      if (!studentToDelete) return;
+
+      console.log("STUDENT TO DELTE OBJECT:", studentToDelete);
+
+      console.log("ID:", studentToDelete.id);
+      console.log("aprent ID:", studentToDelete.parent_id);
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
       const accessToken = session?.access_token;
 
-      const res = await fetch(
-        API + "api/db/delete-student/" + studentToDelete.id,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
+      const res = await fetch(API + "api/db/delete-student", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          student_id: studentToDelete.id,
+          parent_id: studentToDelete.parent_id,
+        }),
+      });
 
       const json = await res.json();
       if (json.error) throw new Error(json.error);
@@ -186,8 +361,11 @@ export default function MyStudentsScreen() {
       );
 
       setShowDeleteModal(false);
+      setStudentToDelete(null);
+
+      showSuccessNotification(`Successfully deleted ${studentToDelete.name}!`);
     } catch (err) {
-      Alert.alert("Error", err.message);
+      showSuccessNotification(`Failed to delete ${studentToDelete.name}!`);
     }
   };
 
@@ -213,6 +391,13 @@ export default function MyStudentsScreen() {
           >
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
+          {/* Top-right Add Button */}
+          <TouchableOpacity
+            style={styles.addButtonTop}
+            onPress={() => setShowAddModal(true)}
+          >
+            <Text style={styles.addButtonText}>+ Add Student</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.container}>
@@ -232,37 +417,39 @@ export default function MyStudentsScreen() {
                 .filter((s) =>
                   s.name.toLowerCase().includes(searchQuery.toLowerCase())
                 )
-                .map((student) => (
-                  <View style={styles.studentCard} key={student.id}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.studentTitle}>{student.name}</Text>
+                .map((student) => {
+                  return (
+                    <View style={styles.studentCard} key={student.id}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.studentTitle}>{student.name}</Text>
 
-                      <View style={styles.subInfoGroup}>
-                        <Text style={styles.subLabel}>Parent Id</Text>
-                        <Text style={styles.subValue}>
-                          {student.parent_id || "N/A"}
-                        </Text>
+                        <View style={styles.subInfoGroup}>
+                          <Text style={styles.subLabel}>Parent Id</Text>
+                          <Text style={styles.subValue}>
+                            {student.parent_id || "N/A"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* ACTION BUTTONS */}
+                      <View style={styles.actionBox}>
+                        <TouchableOpacity
+                          style={styles.editButton}
+                          onPress={() => openEditModal(student)}
+                        >
+                          <Text style={styles.editText}>Edit</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.deleteButton}
+                          onPress={() => askDeleteStudent(student)}
+                        >
+                          <Text style={styles.deleteText}>Delete</Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
-
-                    {/* ACTION BUTTONS */}
-                    <View style={styles.actionBox}>
-                      <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => openEditModal(student)}
-                      >
-                        <Text style={styles.editText}>Edit</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.deleteButton}
-                        onPress={() => askDeleteStudent(student)}
-                      >
-                        <Text style={styles.deleteText}>Delete</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
+                  );
+                })}
             </ScrollView>
           </View>
         </View>
@@ -288,19 +475,21 @@ export default function MyStudentsScreen() {
               placeholder="Parent Number"
             />
 
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={saveEditedStudent}
-            >
-              <Text style={styles.primaryButtonText}>Save Changes</Text>
-            </TouchableOpacity>
+            <View style={styles.editButtonRow}>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={saveEditedStudent}
+              >
+                <Text style={styles.primaryButtonText}>Save Changes</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => setShowEditModal(false)}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowEditModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -330,11 +519,201 @@ export default function MyStudentsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* ADD STUDENT MODAL */}
+      <Modal visible={showAddModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Add Student</Text>
+
+            {/* Student Name */}
+            <TextInput
+              placeholder="Student Name"
+              value={newStudentName}
+              onChangeText={setNewStudentName}
+              style={styles.modalInput}
+              placeholderTextColor="#555"
+            />
+
+            {/* Parent Number */}
+            <TextInput
+              placeholder="Parent Number (8 digits)"
+              value={newParentNumber}
+              onChangeText={setNewParentNumber}
+              keyboardType="numeric"
+              style={styles.modalInput}
+              placeholderTextColor="#555"
+            />
+
+            {/* Button Row */}
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={[styles.cancelButton]}
+                onPress={() => setShowAddModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.addButtonTop]}
+                onPress={addStudent}
+              >
+                <Text style={[styles.addButtonText]}>Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            {students.length > 0 &&
+              students.map((s, i) => (
+                <View key={i} style={styles.studentItem}>
+                  <View style={styles.studentRow}>
+                    <View>
+                      <Text style={styles.studentName}>{s.name}</Text>
+                      <Text style={styles.studentParentLabel}>
+                        Number: {s.parentNumber}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() =>
+                        setStudents((prev) =>
+                          prev.filter((_, idx) => idx !== i)
+                        )
+                      }
+                    >
+                      <Text style={styles.removeButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+
+            {/* CSV & Submit Buttons */}
+            <View style={styles.buttonRow}>
+              <Pressable
+                style={[styles.uploadCSVButton, { flex: 1 }]}
+                onPress={pickedCSV ? uploadPickedCSV : handlePickCSV}
+                disabled={uploading}
+              >
+                <Text style={styles.uploadCsvText}>
+                  {uploading
+                    ? "Uploading..."
+                    : pickedCSV
+                    ? `Upload: ${csvFileName}`
+                    : "Import CSV"}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.primaryButton, { flex: 1 }]}
+                onPress={submitStudents}
+              >
+                <Text style={styles.primaryButtonText}>Submit</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      <View
+        style={{
+          position: "absolute",
+          top: 20,
+          right: 20,
+          zIndex: 99999,
+        }}
+      >
+        {successNotifications.map((notif, index) => (
+          <Animated.View
+            key={index}
+            style={{
+              marginTop: index * 10, // stack them vertically
+              width: 280,
+              backgroundColor: notif.color,
+              borderColor: "#155724",
+              borderWidth: 2,
+              borderRadius: 12,
+              padding: 16,
+              shadowColor: "#000",
+              shadowOffset: { width: 2, height: 2 },
+              shadowOpacity: 0.3,
+              shadowRadius: 4,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
+                color: "#155724",
+              }}
+            >
+              {notif.message}
+            </Text>
+          </Animated.View>
+        ))}
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  addButtonTop: {
+    zIndex: 10,
+    borderRadius: 20,
+    backgroundColor: "#1F3C88",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
+  addButtonText: {
+    fontSize: 18,
+    color: "#F2E9E4",
+    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
+  },
+
+  /* Modal shared styles */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalCard: {
+    width: "50%",
+    backgroundColor: "white",
+    padding: 22,
+    borderRadius: 14,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  modalButtonsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 20,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginHorizontal: 5,
+    alignItems: "center",
+  },
+  modalBtnText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
   safeArea: {
     flex: 1,
     backgroundColor: "#A7C7E7",
@@ -343,9 +722,10 @@ const styles = StyleSheet.create({
   header: {
     width: "100%",
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 20,
-    paddingLeft: 20,
+    paddingHorizontal: 20,
   },
 
   container: {
@@ -379,10 +759,11 @@ const styles = StyleSheet.create({
   },
 
   card: {
+    flex: 1,
     width: "100%",
     backgroundColor: "#F2E9E4",
     borderRadius: 20,
-    padding: 20,
+    paddingHorizontal: 20,
     borderWidth: 3,
     borderColor: "#1F3C88",
     shadowColor: "#000",
@@ -395,7 +776,7 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: "#1F3C88",
     textAlign: "center",
-    marginBottom: 20,
+    marginVertical: 20,
     fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
   },
 
@@ -464,8 +845,8 @@ const styles = StyleSheet.create({
   },
 
   editButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     backgroundColor: "#E7F0FF",
     borderRadius: 8,
     borderWidth: 1,
@@ -478,8 +859,8 @@ const styles = StyleSheet.create({
   },
 
   deleteButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     backgroundColor: "#FFEAEA",
     borderRadius: 8,
     borderWidth: 1,
@@ -491,28 +872,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // Modal overlay background
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.4)",
-    paddingHorizontal: 20,
-  },
-
   modalBox: {
-    width: "100%",
+    width: "50%",
     backgroundColor: "white",
     padding: 20,
     borderRadius: 14,
+    maxWidth: "50%",
     elevation: 5,
-  },
-
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#002766",
-    marginBottom: 14,
   },
 
   input: {
@@ -527,20 +893,26 @@ const styles = StyleSheet.create({
   },
 
   primaryButton: {
-    backgroundColor: "#1F3C88",
-    paddingVertical: 12,
+    borderWidth: 3,
+    borderColor: "#1F3C88",
+    backgroundColor: "#F2E9E4",
+    padding: 12,
     borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
+
   primaryButtonText: {
     textAlign: "center",
-    color: "white",
+    color: "#1F3C88",
     fontWeight: "700",
     fontSize: 16,
   },
 
   cancelButton: {
-    marginTop: 10,
-    paddingVertical: 10,
+    padding: 12,
     borderRadius: 10,
     backgroundColor: "#E8ECF7",
   },
@@ -553,7 +925,7 @@ const styles = StyleSheet.create({
 
   // Delete modal box
   deleteBox: {
-    width: "100%",
+    width: "50%",
     backgroundColor: "white",
     padding: 20,
     borderRadius: 14,
@@ -598,5 +970,103 @@ const styles = StyleSheet.create({
     color: "#1F3C88",
     textAlign: "center",
     marginRight: 40, // ensures back button doesn't overlap
+  },
+  editButtonRow: {
+    display: "flex",
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  pendingRow: {
+    padding: 8,
+    backgroundColor: "#eef5ff",
+    borderRadius: 6,
+    marginTop: 4,
+  },
+
+  submitBtn: {
+    backgroundColor: "green",
+    paddingVertical: 12,
+    marginTop: 20,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  submitBtnText: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "600",
+  },
+
+  closeBtn: {
+    marginTop: 12,
+    padding: 10,
+    alignItems: "center",
+  },
+  closeBtnText: {
+    fontSize: 16,
+    color: "red",
+    fontWeight: "600",
+  },
+  studentItem: {
+    backgroundColor: "#FFFACD",
+    borderWidth: 3,
+    borderColor: "#1F3C88",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
+  studentRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  studentName: {
+    fontSize: 20,
+    color: "#1F3C88",
+    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
+  },
+  studentParentLabel: {
+    fontSize: 16,
+    color: "#1F3C88",
+    marginTop: 4,
+    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
+  },
+  removeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#1F3C88",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  removeButtonText: {
+    color: "#fff",
+    fontSize: 18,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    marginTop: 20,
+    columnGap: 16,
+  },
+  uploadCSVButton: {
+    backgroundColor: "#FFFACD",
+    paddingVertical: 12,
+    borderRadius: 30,
+    borderWidth: 3,
+    borderColor: "#1F3C88",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
+  uploadCsvText: {
+    color: "#1F3C88",
+    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
   },
 });
