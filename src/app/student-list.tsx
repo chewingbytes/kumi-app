@@ -215,14 +215,6 @@ export default function StudentListScreen() {
     }, 3000);
   };
 
-  const dashboardScrollRef = useRef<ScrollView>(null);
-
-  useEffect(() => {
-    if (dashboardScrollRef.current) {
-      dashboardScrollRef.current.scrollToEnd({ animated: true });
-    }
-  }, [studentsDashboard]);
-
   return (
     <SafeAreaView
       style={styles.safeArea}
@@ -253,7 +245,6 @@ export default function StudentListScreen() {
             />
 
             <ScrollView
-              ref={dashboardScrollRef}
               contentContainerStyle={{ paddingBottom: 20 }}
               style={{ flex: 1 }}
             >
