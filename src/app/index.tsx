@@ -11,7 +11,13 @@ import * as DocumentPicker from "expo-document-picker";
 import { supabase } from "../../lib/supabase";
 import Constants from "expo-constants";
 const API = Constants.expoConfig?.extra?.EXPO_PUBLIC_API_BASE;
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from "react";
 import {
   View,
   Pressable,
@@ -51,6 +57,12 @@ export default function HomeScreen() {
   const [csvFileName, setCsvFileName] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [manualSelect, setManualSelect] = useState(false); // track if user clicked
+
+  const filteredStudents = useMemo(() => {
+    return studentsDashboard.filter((e) =>
+      e.student_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [studentsDashboard, searchQuery]);
 
   let [fontsLoaded] = useFonts({
     DynaPuff_400Regular,
@@ -191,7 +203,7 @@ export default function HomeScreen() {
 
   const notificationIdRef = useRef(0);
 
-  const showSendingNotification = (studentName: string) => {
+  const showSendingNotification = useCallback((studentName: string) => {
     const id = notificationIdRef.current++;
     const message = `Sending to ${studentName}'s parents...`;
 
@@ -207,29 +219,32 @@ export default function HomeScreen() {
     }, 3000);
 
     return id; // return the id so we can remove/replace it later
-  };
+  }, []);
 
-  const showSuccessNotification = (studentName: string, result: boolean) => {
-    const id = notificationIdRef.current++; // persist ID between renders
-    const message =
-      result === true
-        ? `Message sent successfully to ${studentName}'s parents!`
-        : "An error occurred";
+  const showSuccessNotification = useCallback(
+    (studentName: string, result: boolean) => {
+      const id = notificationIdRef.current++; // persist ID between renders
+      const message =
+        result === true
+          ? `Message sent successfully to ${studentName}'s parents!`
+          : "An error occurred";
 
-    setSuccessNotifications((prev) => [
-      ...prev,
-      { id, message, color: "#D4EDDA" },
-    ]);
+      setSuccessNotifications((prev) => [
+        ...prev,
+        { id, message, color: "#D4EDDA" },
+      ]);
 
-    // auto-hide after 3 seconds
-    setTimeout(() => {
-      setSuccessNotifications((prev) =>
-        prev.filter((notif) => notif.id !== id)
-      );
-    }, 3000);
-  };
+      // auto-hide after 3 seconds
+      setTimeout(() => {
+        setSuccessNotifications((prev) =>
+          prev.filter((notif) => notif.id !== id)
+        );
+      }, 3000);
+    },
+    []
+  );
 
-  const sendWhatsappMessage = async (name: string) => {
+  const sendWhatsappMessage = useCallback(async (name: string) => {
     try {
       const {
         data: { session },
@@ -259,7 +274,7 @@ export default function HomeScreen() {
       Alert.alert("Error", "Something went wrong while sending the message.");
       return false;
     }
-  };
+  }, []);
 
   const addStudent = () => {
     const name = studentName.trim();
@@ -313,7 +328,7 @@ export default function HomeScreen() {
     }
   };
 
-  const finishDay = async () => {
+  const finishDay = useCallback(async () => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -323,7 +338,7 @@ export default function HomeScreen() {
     if (res?.error) Alert.alert("Error", res.error);
     else Alert.alert("Done", "Day finished and report sent.");
     setDropdownVisible(false);
-  };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -355,90 +370,81 @@ export default function HomeScreen() {
               {loading ? (
                 <Text style={styles.noDataText}>Refreshing...</Text>
               ) : studentsDashboard && studentsDashboard.length > 0 ? (
-                [...studentsDashboard] // copy array to avoid mutating state
-                  .filter((e) =>
-                    e.student_name
-                      ?.toLowerCase()
-                      .includes(searchQuery.toLowerCase())
-                  )
-                  .map((entry, idx) => (
+                filteredStudents.map((entry, idx) => (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.miniCard,
+                      entry.status === "checked_in" ? styles.in : styles.out,
+                    ]}
+                  >
                     <View
-                      key={idx}
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={styles.miniCardName}>
+                        {entry.student_name}{" "}
+                        {entry.parent_notified && (
+                          <Text
+                            style={{
+                              marginLeft: 8,
+                              color: "green",
+                              fontSize: 18,
+                            }}
+                          >
+                            ✅
+                          </Text>
+                        )}
+                      </Text>
+                    </View>
+
+                    <Text
                       style={[
-                        styles.miniCard,
-                        entry.status === "checked_in" ? styles.in : styles.out,
+                        styles.statusText,
+                        entry.status === "checked_in"
+                          ? styles.checkedIn
+                          : styles.checkedOut,
                       ]}
                     >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          alignItems: "center",
+                      {entry.status === "checked_in"
+                        ? "Checked In"
+                        : "Checked Out"}
+                    </Text>
+
+                    {entry.status === "checked_out" ? (
+                      <TouchableOpacity
+                        style={[
+                          styles.button,
+                          { marginTop: 10, paddingVertical: 8 },
+                        ]}
+                        onPress={async () => {
+                          showSendingNotification(entry.student_name);
+
+                          const result = await sendWhatsappMessage(
+                            entry.student_name
+                          );
+
+                          if (result) {
+                            showSuccessNotification(entry.student_name, result);
+                            await fetchStudents(); // refresh dashboard to update parent_notified
+                          } else {
+                            Alert.alert(
+                              "Error",
+                              `Failed to send message to ${entry.student_name}'s parents.`
+                            );
+                          }
                         }}
                       >
-                        <Text style={styles.miniCardName}>
-                          {entry.student_name}{" "}
-                          {entry.parent_notified && (
-                            <Text
-                              style={{
-                                marginLeft: 8,
-                                color: "green",
-                                fontSize: 18,
-                              }}
-                            >
-                              ✅
-                            </Text>
-                          )}
+                        <Text style={styles.text}>
+                          {entry.parent_notified ? "Notify Again" : "Notify"}
                         </Text>
-                      </View>
-
-                      <Text
-                        style={[
-                          styles.statusText,
-                          entry.status === "checked_in"
-                            ? styles.checkedIn
-                            : styles.checkedOut,
-                        ]}
-                      >
-                        {entry.status === "checked_in"
-                          ? "Checked In"
-                          : "Checked Out"}
-                      </Text>
-
-                      {entry.status === "checked_out" ? (
-                        <TouchableOpacity
-                          style={[
-                            styles.button,
-                            { marginTop: 10, paddingVertical: 8 },
-                          ]}
-                          onPress={async () => {
-                            showSendingNotification(entry.student_name);
-
-                            const result = await sendWhatsappMessage(
-                              entry.student_name
-                            );
-
-                            if (result) {
-                              showSuccessNotification(
-                                entry.student_name,
-                                result
-                              );
-                              await fetchStudents(); // refresh dashboard to update parent_notified
-                            } else {
-                              Alert.alert(
-                                "Error",
-                                `Failed to send message to ${entry.student_name}'s parents.`
-                              );
-                            }
-                          }}
-                        >
-                          <Text style={styles.text}>
-                            {entry.parent_notified ? "Notify Again" : "Notify"}
-                          </Text>
-                        </TouchableOpacity>
-                      ) : null}
-                    </View>
-                  ))
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                ))
               ) : (
                 <SafeAreaView style={styles.loadingSafeArea}>
                   {/* <ActivityIndicator size="large" color="#004A7C" /> */}

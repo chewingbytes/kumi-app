@@ -63,7 +63,7 @@
       ]
     ],
     "extra": {
-      "EXPO_PUBLIC_API_BASE": "https://kumonpunggolplaza.com/",
+      "EXPO_PUBLIC_API_BASE": "http://localhost:8080/",
       "eas": {
         "projectId": "ac98a74c-03e4-4dee-9e04-acbdf735e2a7"
       }
