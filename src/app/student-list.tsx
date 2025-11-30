@@ -32,27 +32,33 @@ export default function StudentListScreen() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [manualSelect, setManualSelect] = useState(false); // track if user clicked
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const [successNotifications, setSuccessNotifications] = useState<
     { id: number; message: string }[]
   >([]);
 
-  const handleDeleteStudent = async (studentId: number) => {
+  const handleDeleteStudent = async (studentId) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
 
-      Alert.alert(
-        "Delete Record",
-        "Are you sure you want to delete this record?",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Delete",
-            style: "destructive",
-            onPress: async () => {
+      Alert.alert("Delete Record", "Are you sure?", [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => setIsProcessing(false),
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
               const res = await fetch(API + `api/db/${studentId}`, {
                 method: "DELETE",
                 headers: {
@@ -60,23 +66,24 @@ export default function StudentListScreen() {
                   "Content-Type": "application/json",
                 },
               });
+
               const json = await res.json();
               if (json.error) throw new Error(json.error);
 
-              console.log("JSON:", json);
-
-              Alert.alert(
-                "Deleted",
-                json.message || "Student deleted successfully!"
-              );
+              Alert.alert("Deleted", json.message);
               setSelectedStudent(null);
-              fetchStudents();
-            },
+              await fetchStudents();
+            } catch (err) {
+              Alert.alert("Error", err.message);
+            } finally {
+              setIsProcessing(false);
+            }
           },
-        ]
-      );
+        },
+      ]);
     } catch (err) {
       Alert.alert("Error", err.message);
+      setIsProcessing(false);
     }
   };
 
@@ -308,14 +315,16 @@ export default function StudentListScreen() {
                           }}
                         >
                           <Pressable
+                            disabled={isProcessing}
                             onPress={() => {
-                              setSelectedStudent(null);
-                              handleDeleteStudent(entry.student_id);
+                              if (!isProcessing)
+                                handleDeleteStudent(selectedStudent.student_id);
                             }}
                             style={{
                               padding: 10,
                               borderRadius: 4,
                               backgroundColor: "#B00020",
+                              opacity: isProcessing ? 0.5 : 1,
                             }}
                           >
                             <Text

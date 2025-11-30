@@ -29,6 +29,7 @@ export default function MyStudentsScreen() {
   const [studentsDashboard, setStudentsDashboard] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Add Student Modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -233,6 +234,14 @@ export default function MyStudentsScreen() {
   };
 
   const submitStudents = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
+    if (!students.length) {
+      setIsProcessing(false); // reset here too
+      return;
+    }
+
     showStatusNotification(`Adding new students...`);
     if (!students.length) {
       showSuccessNotification(`No students to add`);
@@ -265,11 +274,21 @@ export default function MyStudentsScreen() {
       fetchStudents();
     } catch (err) {
       showSuccessNotification(`Failed to add new students`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   /** SAVE EDITED STUDENT */
   const saveEditedStudent = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
+    if (!editingStudent) {
+      setIsProcessing(false);
+      return;
+    }
+
     try {
       showStatusNotification(`Updating ${editingStudent.name}...`);
       const {
@@ -315,6 +334,8 @@ export default function MyStudentsScreen() {
       setShowEditModal(false);
     } catch (err) {
       showSuccessNotification(`Failed to Updated ${editingStudent.name}!`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -326,6 +347,14 @@ export default function MyStudentsScreen() {
 
   /** DELETE STUDENT CONFIRM */
   const deleteStudent = async () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
+    if (!studentToDelete) {
+      setIsProcessing(false);
+      return;
+    }
+
     try {
       showStatusNotification(`Deleting ${studentToDelete.name}...`);
       if (!studentToDelete) return;
@@ -366,6 +395,8 @@ export default function MyStudentsScreen() {
       showSuccessNotification(`Successfully deleted ${studentToDelete.name}!`);
     } catch (err) {
       showSuccessNotification(`Failed to delete ${studentToDelete.name}!`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -444,7 +475,14 @@ export default function MyStudentsScreen() {
                           style={styles.deleteButton}
                           onPress={() => askDeleteStudent(student)}
                         >
-                          <Text style={styles.deleteText}>Delete</Text>
+                          <Text
+                            style={[
+                              styles.deleteText,
+                              { opacity: isProcessing ? 0.5 : 1 },
+                            ]}
+                          >
+                            Delete
+                          </Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -479,10 +517,17 @@ export default function MyStudentsScreen() {
               <TouchableOpacity
                 style={styles.primaryButton}
                 onPress={saveEditedStudent}
+                disabled={isProcessing}
               >
-                <Text style={styles.primaryButtonText}>Save Changes</Text>
+                <Text
+                  style={[
+                    styles.primaryButtonText,
+                    { opacity: isProcessing ? 0.5 : 1 },
+                  ]}
+                >
+                  Save Changes
+                </Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => setShowEditModal(false)}
@@ -512,8 +557,16 @@ export default function MyStudentsScreen() {
               <TouchableOpacity
                 style={styles.deleteButtonRed}
                 onPress={deleteStudent}
+                disabled={isProcessing}
               >
-                <Text style={styles.deleteButtonText}>Delete</Text>
+                <Text
+                  style={[
+                    styles.deleteButtonText,
+                    { opacity: isProcessing ? 0.5 : 1 },
+                  ]}
+                >
+                  Delete
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -602,7 +655,11 @@ export default function MyStudentsScreen() {
                 </Text>
               </Pressable>
               <Pressable
-                style={[styles.primaryButton, { flex: 1 }]}
+                disabled={isProcessing}
+                style={[
+                  styles.primaryButton,
+                  { flex: 1, opacity: isProcessing ? 0.5 : 1 },
+                ]}
                 onPress={submitStudents}
               >
                 <Text style={styles.primaryButtonText}>Submit</Text>
