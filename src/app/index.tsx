@@ -1,6 +1,7 @@
 //mac http://192.168.1.127:4000
 //http://192.168.0.203:4000/
 //http://46.62.157.49/
+import StudentCard from "../../components/StudentCard";
 import { useFonts } from "@expo-google-fonts/dynapuff/useFonts";
 import { DynaPuff_400Regular } from "@expo-google-fonts/dynapuff/400Regular";
 import { DynaPuff_500Medium } from "@expo-google-fonts/dynapuff/500Medium";
@@ -34,6 +35,7 @@ import {
   ImageBackground,
   ActivityIndicator,
   Animated,
+  FlatList,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
@@ -185,7 +187,7 @@ export default function HomeScreen() {
 
       const accessToken = session?.access_token;
 
-      const res = await fetch(API + "api/db/students", {
+      const res = await fetch(API + "api/db/homescreenstudents", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -346,8 +348,6 @@ export default function HomeScreen() {
     }, [])
   );
 
-  const dashboardScrollRef = useRef<ScrollView>(null);
-
   if (!fontsLoaded) {
     return null;
   } else {
@@ -363,100 +363,31 @@ export default function HomeScreen() {
               style={styles.input}
               placeholderTextColor="#888"
             />
-            <ScrollView
-              ref={dashboardScrollRef}
+            <FlatList
+              data={loading ? [] : filteredStudents}
+              keyExtractor={(item) => item.id?.toString() || item.student_name}
               contentContainerStyle={{ paddingBottom: 20 }}
-            >
-              {loading ? (
-                <Text style={styles.noDataText}>Refreshing...</Text>
-              ) : studentsDashboard && studentsDashboard.length > 0 ? (
-                filteredStudents.map((entry, idx) => (
-                  <View
-                    key={idx}
-                    style={[
-                      styles.miniCard,
-                      entry.status === "checked_in" ? styles.in : styles.out,
-                    ]}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text style={styles.miniCardName}>
-                        {entry.student_name}{" "}
-                        {entry.parent_notified && (
-                          <Text
-                            style={{
-                              marginLeft: 8,
-                              color: "green",
-                              fontSize: 18,
-                            }}
-                          >
-                            ✅
-                          </Text>
-                        )}
-                      </Text>
-                    </View>
-
-                    <Text
-                      style={[
-                        styles.statusText,
-                        entry.status === "checked_in"
-                          ? styles.checkedIn
-                          : styles.checkedOut,
-                      ]}
-                    >
-                      {entry.status === "checked_in"
-                        ? "Checked In"
-                        : "Checked Out"}
-                    </Text>
-
-                    {entry.status === "checked_out" ? (
-                      <TouchableOpacity
-                        style={[
-                          styles.button,
-                          { marginTop: 10, paddingVertical: 8 },
-                        ]}
-                        onPress={async () => {
-                          showSendingNotification(entry.student_name);
-
-                          const result = await sendWhatsappMessage(
-                            entry.student_name
-                          );
-
-                          if (result) {
-                            showSuccessNotification(entry.student_name, result);
-                            await fetchStudents(); // refresh dashboard to update parent_notified
-                          } else {
-                            Alert.alert(
-                              "Error",
-                              `Failed to send message to ${entry.student_name}'s parents.`
-                            );
-                          }
-                        }}
-                      >
-                        <Text style={styles.text}>
-                          {entry.parent_notified ? "Notify Again" : "Notify"}
-                        </Text>
-                      </TouchableOpacity>
-                    ) : null}
-                  </View>
-                ))
-              ) : (
-                <SafeAreaView style={styles.loadingSafeArea}>
-                  {/* <ActivityIndicator size="large" color="#004A7C" /> */}
-                  <Text>No students found.</Text>
-                </SafeAreaView>
+              ListEmptyComponent={() =>
+                loading ? (
+                  <Text style={styles.noDataText}>Refreshing...</Text>
+                ) : (
+                  <SafeAreaView style={styles.loadingSafeArea}>
+                    <Text>No students found.</Text>
+                  </SafeAreaView>
+                )
+              }
+              renderItem={({ item }) => (
+                <StudentCard
+              //@ts-ignore
+                  entry={item}
+                  styles={styles}
+                  sendWhatsappMessage={sendWhatsappMessage}
+                  showSendingNotification={showSendingNotification}
+                  showSuccessNotification={showSuccessNotification}
+                  fetchStudents={fetchStudents}
+                />
               )}
-            </ScrollView>
-            <View style={styles.totalCountContainer}>
-              <Text style={styles.totalCountText}>
-                Total Students: {studentsDashboard.length}
-              </Text>
-            </View>
+            />
           </View>
 
           {/* Hamburger Menu */}

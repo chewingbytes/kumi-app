@@ -25,6 +25,87 @@ const audioSource = {
   uri: "https://nlsggkzpooovjifqcbig.supabase.co/storage/v1/object/public/image_storage/dontdelete/ringwav.wav",
 };
 
+const TEST_STUDENTS = [
+  "OH CHARMIAN",
+  "SHAJITHA MEHRIN SHAHUL",
+  "JASPER KOH",
+  "HANAN RAISSA HAIKAL",
+  "KAUSHI GAUR",
+  "AIZEN NAHYAAN MUZTAQQIM NABIL",
+  "RAPHAEL LIM ZHI HENG",
+  "OLIVIA NAVA NAVARATTINAM",
+  "ADHRITH LOKESH",
+  "ASHRITH LOKESH",
+  "AMITH LATIKE",
+  "ADELINE LIM XIN YUAN",
+  "KYLE WONG KAI XIAN",
+  "KRISTIAN SEAH",
+  "NAITHIK MIHAN",
+  "WOO SHI ZHENG JULIUS",
+  "JEANETTE EE YUE NING",
+  "AAVYA NAIR",
+  "SATHVIK PALLARLA",
+  "CHEE ZHENG YU JAVIER",
+  "ALYSSA GRACE ONG",
+  "BHUMI BAISA",
+  "AKASH BAISA",
+  "TRICIA LEE YEE CHEN",
+  "BOLLEBALLI NIHIRA",
+  "IFRAH NAJIAH",
+  "TARA DESITA CHIA",
+  "HE XIANG YI",
+  "ZENITH KHOO KHANG ZHI",
+  "AFFAN AFIQ",
+  "LUKE JEVON CONCEICAO",
+  "KENTO LOO LI XUAN",
+  "ARYAN KOYYA",
+  "THARSNAVEE MATHAN PRASATH",
+  "KAI SUBRATA",
+  "MATHEW JOSH",
+  "KHABIR ABDUL BIN MOHAMED HAFRIZ",
+  "SHAWN JIANG MINGZHE",
+  "SWASTHIKA MADHU",
+  "WANG MIAOZHU",
+  "CAELYN TEO",
+  "TANISHI MAITY",
+  "IMTIYAZ MUADZ BIN PUTERA MUHAMMAD ALI",
+  "EHSAN WALI BIN MUHAMMAD FADLY",
+  "ASHLYN NIU XUAN TING",
+  "AARAV VATSA",
+  "MINHAB WARRITH KHAN",
+  "ANANYA KARTHIK",
+  "BHAVYANSH YASAM",
+  "TAN XUAN YING",
+  "JENNA TEO",
+  "DEENA DESMUND",
+  "RESHVIN PRADYUSH",
+  "YAPARLA SKANDHA YASASHWI REDDY",
+  "LEE ZI XUAN",
+  "HEENAYA CHANDRAKAR",
+  "SOFIA ADRIANNA",
+  "PANVITH TAARAK PALADUGU",
+  "LUKAS ONGGARA",
+  "ANJANA RAMESH",
+  "WANG ANDI",
+  "DANIEL TEH",
+  "DHYAN ARADHYA",
+  "AVIRA BOOMINATHAN",
+  "ANGELA ZHANG",
+  "KEONNA CHENG JIA XUAN",
+  "TENG YONG JYU",
+  "HUANG JIALE",
+  "CINO ESTELLE MARY",
+  "ONA NEO",
+  "WANG YOU",
+  "SAANVI SREEJITH",
+  "REYERS POH",
+  "CHAN XIN YAN",
+  "ARYAN MODANI",
+  "LING RUI XIANG",
+  "MISHRA DISHANT",
+  "ARYAN YUNUS",
+];
+
 console.log("API:", API);
 const postJSON = async (path: string, body: object, accessToken: string) => {
   console.log("querying:", path);
@@ -81,6 +162,45 @@ const QRScanner: React.FC = () => {
   const [scanned, setScanned] = useState(false);
 
   const lastScannedTimeStampRef = useRef(0);
+
+  //   const [autoTestRunning, setAutoTestRunning] = useState(false);
+  // const autoCheckRef = useRef<NodeJS.Timer | null>(null);
+
+  // const startAutoCheckIn = () => {
+  //   if (autoCheckRef.current) return; // prevent double starting
+
+  //   console.log("🚀 Auto check-in test started…");
+  //   setAutoTestRunning(true);
+
+  //   // Start the interval loop
+  //   autoCheckRef.current = setInterval(() => {
+  //     const randomName =
+  //       TEST_STUDENTS[Math.floor(Math.random() * TEST_STUDENTS.length)];
+
+  //     console.log("Checking in:", randomName);
+  //     handleCheckIn(randomName);
+  //   }, 1000); // every 1s
+
+  //   // Auto-stop after 1 minute
+  //   setTimeout(() => {
+  //     console.log("⏱️ Auto check-in stopped automatically after 1 minute");
+  //     stopAutoCheckIn();
+  //   }, 7 * 60 * 1000);
+  // };
+
+  // const stopAutoCheckIn = () => {
+  //   if (autoCheckRef.current) {
+  //     clearInterval(autoCheckRef.current);
+  //     autoCheckRef.current = null;
+  //   }
+  //   console.log("🛑 Auto check-in test stopped");
+  //   setAutoTestRunning(false);
+  // };
+
+  // // Cleanup when component unmounts
+  // useEffect(() => {
+  //   return () => stopAutoCheckIn();
+  // }, []);
 
   // const fetchStudents = useCallback(async () => {
   //   try {
@@ -150,38 +270,38 @@ const QRScanner: React.FC = () => {
     }
   }, [hasCameraPermission, hasAudioPermission]);
 
-  const showFullScreenAnimation = (text: string) => {
-    setAnimationText(text);
+  // const showFullScreenAnimation = (text: string) => {
+  //   setAnimationText(text);
 
-    // Reset animation
-    fadeAnim.setValue(0);
-    scaleAnim.setValue(0.8);
+  //   // Reset animation
+  //   fadeAnim.setValue(0);
+  //   scaleAnim.setValue(0.8);
 
-    // Animate in
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 5,
-        useNativeDriver: true,
-      }),
-    ]).start();
+  //   // Animate in
+  //   Animated.parallel([
+  //     Animated.timing(fadeAnim, {
+  //       toValue: 1,
+  //       duration: 400,
+  //       useNativeDriver: true,
+  //     }),
+  //     Animated.spring(scaleAnim, {
+  //       toValue: 1,
+  //       friction: 5,
+  //       useNativeDriver: true,
+  //     }),
+  //   ]).start();
 
-    // Animate out after 2 seconds
-    setTimeout(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }).start(() => {
-        setAnimationText(null);
-      });
-    }, 500);
-  };
+  //   // Animate out after 2 seconds
+  //   setTimeout(() => {
+  //     Animated.timing(fadeAnim, {
+  //       toValue: 0,
+  //       duration: 500,
+  //       useNativeDriver: true,
+  //     }).start(() => {
+  //       setAnimationText(null);
+  //     });
+  //   }, 500);
+  // };
 
   // const sendWhatsappMessage = async (name: string) => {
   //   try {
@@ -212,7 +332,7 @@ const QRScanner: React.FC = () => {
   // };
 
   const handleCheckOut = async (name: string) => {
-    showFullScreenAnimation(`Bye, ${name}!`);
+    // showFullScreenAnimation(`Bye, ${name}!`);
     console.log("CHEKCING OUT NAME:", name);
     const {
       data: { session },
@@ -230,7 +350,7 @@ const QRScanner: React.FC = () => {
   };
 
   const handleCheckIn = async (name: string) => {
-    showFullScreenAnimation(`Welcome, ${name}!`);
+    // showFullScreenAnimation(`Welcome, ${name}!`);
 
     const {
       data: { session },
@@ -351,7 +471,7 @@ const QRScanner: React.FC = () => {
   if (hasCameraPermission && hasAudioPermission) {
     return (
       <View style={{ flexDirection: "row", flex: 1 }}>
-        {animationText && (
+        {/* {animationText && (
           <Animated.View
             style={[
               styles.fullscreenOverlay,
@@ -363,7 +483,7 @@ const QRScanner: React.FC = () => {
           >
             <BouncyText text={animationText} />
           </Animated.View>
-        )}
+        )} */}
 
         {/* 📷 Left side - Camera area */}
         <View style={{ width: "100%", height: "100%" }}>
@@ -375,6 +495,22 @@ const QRScanner: React.FC = () => {
             animateShutter
             barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
           />
+          <View style={{ position: "absolute", bottom: 40, right: 20 }}>
+            {/* <TouchableOpacity
+    onPress={() =>
+      autoTestRunning ? stopAutoCheckIn() : startAutoCheckIn()
+    }
+    style={{
+      padding: 12,
+      backgroundColor: autoTestRunning ? "red" : "green",
+      borderRadius: 8,
+    }}
+  >
+    <Text style={{ color: "white", fontWeight: "bold" }}>
+      {autoTestRunning ? "Stop Auto Test" : "Start Auto Test"}
+    </Text>
+  </TouchableOpacity> */}
+          </View>
 
           {/* ✅ Overlay UI */}
           {showCheck && (
@@ -420,63 +556,23 @@ const QRScanner: React.FC = () => {
   }
 };
 
-const BouncyText: React.FC<{ text: string }> = ({ text }) => {
-  const letters = text.split("");
-  const animations = letters.map(() => new Animated.Value(0));
+// const BouncyText: React.FC<{ text: string }> = ({ text }) => {
+//   const letters = text.split("");
+//   const animations = letters.map(() => new Animated.Value(0));
 
-  useEffect(() => {
-    Animated.stagger(
-      10, // delay per letter
-      animations.map((anim) =>
-        Animated.spring(anim, {
-          toValue: 1,
-          friction: 4,
-          tension: 70,
-          useNativeDriver: true,
-        })
-      )
-    ).start();
-  }, []);
-
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        flexWrap: "wrap", // allow letters to wrap to next line
-        justifyContent: "center", // center text
-        maxWidth: "90%", // keep it inside the screen
-      }}
-    >
-      {letters.map((letter, i) => (
-        <Animated.Text
-          key={i}
-          style={[
-            styles.animationText,
-            {
-              transform: [
-                {
-                  translateY: animations[i].interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [40, 0], // drop-in bounce
-                  }),
-                },
-                {
-                  scale: animations[i].interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.3, 1], // bounce pop
-                  }),
-                },
-              ],
-              opacity: animations[i],
-            },
-          ]}
-        >
-          {letter}
-        </Animated.Text>
-      ))}
-    </View>
-  );
-};
+//   useEffect(() => {
+//     Animated.stagger(
+//       10, // delay per letter
+//       animations.map((anim) =>
+//         Animated.spring(anim, {
+//           toValue: 1,
+//           friction: 4,
+//           tension: 70,
+//           useNativeDriver: true,
+//         })
+//       )
+//     ).start();
+//   }, []);
 
 const styles = StyleSheet.create({
   backButton: {
