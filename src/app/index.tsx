@@ -37,28 +37,17 @@ import {
   Animated,
   FlatList,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
-  const [modalVisible, setModalVisible] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [studentName, setStudentName] = useState("");
-  const [parentNumber, setParentNumber] = useState("");
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [successNotifications, setSuccessNotifications] = useState<
     { id: number; message: string; color: string }[]
   >([]);
   const [loading, setLoading] = useState(false);
   const [studentsDashboard, setStudentsDashboard] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [students, setStudents] = useState([]);
-  const [uploading, setUploading] = useState(false);
-  const [pickedCSV, setPickedCSV] = useState(null);
-  const [csvFileName, setCsvFileName] = useState(null);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [manualSelect, setManualSelect] = useState(false); // track if user clicked
 
   const filteredStudents = useMemo(() => {
     return studentsDashboard.filter((e) =>
@@ -72,84 +61,6 @@ export default function HomeScreen() {
     DynaPuff_600SemiBold,
     DynaPuff_700Bold,
   });
-
-  const handlePickCSV = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: Platform.OS === "android" ? "*/*" : "text/csv",
-        copyToCacheDirectory: true,
-      });
-
-      if (
-        result.canceled === false &&
-        result.assets &&
-        result.assets.length > 0
-      ) {
-        const fileAsset = result.assets[0];
-
-        const file = {
-          uri: fileAsset.uri,
-          name: fileAsset.name,
-          type: fileAsset.mimeType || "text/csv",
-        };
-
-        setPickedCSV(file); // Set your local file state
-        setCsvFileName(file.name); // Optional: for display
-      }
-    } catch (err) {
-      Alert.alert("Pick Error", err.message);
-    }
-  };
-
-  const uploadPickedCSV = async () => {
-    if (!pickedCSV) {
-      console.log("No file picked!");
-      return Alert.alert("No file", "Please pick a CSV file first.");
-    }
-
-    setUploading(true);
-
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
-
-      // Convert blob URI to File object
-      const response = await fetch(pickedCSV.uri);
-      const blob = await response.blob();
-
-      const formData = new FormData();
-      formData.append(
-        "file",
-        new File([blob], pickedCSV.name, { type: pickedCSV.type })
-      );
-
-      const res = await fetch(API + "api/db/upload-csv", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: formData,
-      });
-
-      const json = await res.json();
-      setUploading(false);
-      setPickedCSV(null);
-      setCsvFileName(null);
-
-      if (json.error) {
-        Alert.alert("Upload Error", json.error);
-      } else {
-        Alert.alert("Success", "CSV uploaded and processed!");
-        fetchStudents();
-        setModalVisible(false);
-      }
-    } catch (err) {
-      setUploading(false);
-      Alert.alert("Error", err.message);
-    }
-  };
 
   const postJSON = async (path: string, accessToken: string) => {
     const res = await fetch(API + path, {
@@ -179,7 +90,7 @@ export default function HomeScreen() {
     return res.json();
   };
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       const {
         data: { session },
@@ -201,46 +112,39 @@ export default function HomeScreen() {
     } catch (error) {
       console.error("Error fetching students:", error.message);
     }
-  };
+  }, []);
 
+  // 1. Store a stable notification ID that never resets on re-render
   const notificationIdRef = useRef(0);
 
+  // 2. ALWAYS replace the previous notification (never stack)
   const showSendingNotification = useCallback((studentName: string) => {
     const id = notificationIdRef.current++;
     const message = `Sending to ${studentName}'s parents...`;
 
-    setSuccessNotifications((prev) => [
-      ...prev,
-      { id, message, color: "#ECECEC" },
-    ]);
+    setSuccessNotifications([{ id, message, color: "#ECECEC" }]);
 
+    // auto-clear after 3s
     setTimeout(() => {
-      setSuccessNotifications((prev) =>
-        prev.filter((notif) => notif.id !== id)
-      );
+      setSuccessNotifications([]);
     }, 3000);
 
-    return id; // return the id so we can remove/replace it later
+    return id; // in case you need to replace it later
   }, []);
 
+  // 3. Success/Error notification — also replaces previous one
   const showSuccessNotification = useCallback(
     (studentName: string, result: boolean) => {
-      const id = notificationIdRef.current++; // persist ID between renders
-      const message =
-        result === true
-          ? `Message sent successfully to ${studentName}'s parents!`
-          : "An error occurred";
+      const id = notificationIdRef.current++;
 
-      setSuccessNotifications((prev) => [
-        ...prev,
-        { id, message, color: "#D4EDDA" },
-      ]);
+      const message = result
+        ? `Message sent successfully to ${studentName}'s parents!`
+        : "An error occurred";
 
-      // auto-hide after 3 seconds
+      setSuccessNotifications([{ id, message, color: "#D4EDDA" }]);
+
       setTimeout(() => {
-        setSuccessNotifications((prev) =>
-          prev.filter((notif) => notif.id !== id)
-        );
+        setSuccessNotifications([]);
       }, 3000);
     },
     []
@@ -278,58 +182,6 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const addStudent = () => {
-    const name = studentName.trim();
-    const number = parentNumber.trim();
-
-    if (!name || !number) {
-      return Alert.alert("Missing Fields", "Please fill all fields.");
-    }
-
-    const phoneRegex = /^\d{8}$/; // exactly 8 digits
-    if (!phoneRegex.test(parentNumber)) {
-      return Alert.alert(
-        "Invalid Number",
-        "Please enter a valid 8-digit Singapore phone number."
-      );
-    }
-
-    setStudents((prev) => [...prev, { name: studentName, parentNumber }]);
-    setStudentName("");
-    setParentNumber("");
-  };
-
-  const submitStudents = async () => {
-    if (!students.length) return Alert.alert("No students to submit");
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      const accessToken = session?.access_token;
-
-      console.log("SNEDING REQUEST:", API + "api/db/students");
-
-      const res = await fetch(API + "api/db/students", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ students }),
-      });
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
-
-      Alert.alert("Success", json.message || "All students added.");
-      setStudents([]);
-      setModalVisible(false);
-      fetchStudents();
-    } catch (err) {
-      Alert.alert("Error", err.message);
-    }
-  };
-
   const finishDay = useCallback(async () => {
     const {
       data: { session },
@@ -342,10 +194,29 @@ export default function HomeScreen() {
     setDropdownVisible(false);
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchStudents();
-    }, [])
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const renderStudent = useCallback(
+    ({ item }) => (
+      <StudentCard
+        //@ts-ignore
+        entry={item}
+        styles={styles}
+        sendWhatsappMessage={sendWhatsappMessage}
+        showSendingNotification={showSendingNotification}
+        showSuccessNotification={showSuccessNotification}
+        fetchStudents={fetchStudents}
+      />
+    ),
+    [
+      sendWhatsappMessage,
+      showSendingNotification,
+      showSuccessNotification,
+      fetchStudents,
+      styles,
+    ]
   );
 
   if (!fontsLoaded) {
@@ -365,8 +236,13 @@ export default function HomeScreen() {
             />
             <FlatList
               data={loading ? [] : filteredStudents}
+              renderItem={renderStudent} // use the memoized callback
               keyExtractor={(item) => item.id?.toString() || item.student_name}
-              contentContainerStyle={{ paddingBottom: 20 }}
+              removeClippedSubviews={true} // Unmount off-screen items
+              initialNumToRender={20} // Render first 20 items only
+              maxToRenderPerBatch={20} // Batch render 20 items at a time
+              windowSize={5} // Number of screens worth of content to render
+              updateCellsBatchingPeriod={50} // Time between batch renders
               ListEmptyComponent={() =>
                 loading ? (
                   <Text style={styles.noDataText}>Refreshing...</Text>
@@ -376,17 +252,6 @@ export default function HomeScreen() {
                   </SafeAreaView>
                 )
               }
-              renderItem={({ item }) => (
-                <StudentCard
-              //@ts-ignore
-                  entry={item}
-                  styles={styles}
-                  sendWhatsappMessage={sendWhatsappMessage}
-                  showSendingNotification={showSendingNotification}
-                  showSuccessNotification={showSuccessNotification}
-                  fetchStudents={fetchStudents}
-                />
-              )}
             />
           </View>
 

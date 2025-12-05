@@ -163,44 +163,44 @@ const QRScanner: React.FC = () => {
 
   const lastScannedTimeStampRef = useRef(0);
 
-  //   const [autoTestRunning, setAutoTestRunning] = useState(false);
-  // const autoCheckRef = useRef<NodeJS.Timer | null>(null);
+  const [autoTestRunning, setAutoTestRunning] = useState(false);
+  const autoCheckRef = useRef<NodeJS.Timer | null>(null);
 
-  // const startAutoCheckIn = () => {
-  //   if (autoCheckRef.current) return; // prevent double starting
+  const startAutoCheckIn = () => {
+    if (autoCheckRef.current) return; // prevent double starting
 
-  //   console.log("🚀 Auto check-in test started…");
-  //   setAutoTestRunning(true);
+    console.log("🚀 Auto check-in test started…");
+    setAutoTestRunning(true);
 
-  //   // Start the interval loop
-  //   autoCheckRef.current = setInterval(() => {
-  //     const randomName =
-  //       TEST_STUDENTS[Math.floor(Math.random() * TEST_STUDENTS.length)];
+    // Start the interval loop
+    autoCheckRef.current = setInterval(() => {
+      const randomName =
+        TEST_STUDENTS[Math.floor(Math.random() * TEST_STUDENTS.length)];
 
-  //     console.log("Checking in:", randomName);
-  //     handleCheckIn(randomName);
-  //   }, 1000); // every 1s
+      console.log("Checking in:", randomName);
+      handleCheckIn(randomName);
+    }, 1000); // every 1s
 
-  //   // Auto-stop after 1 minute
-  //   setTimeout(() => {
-  //     console.log("⏱️ Auto check-in stopped automatically after 1 minute");
-  //     stopAutoCheckIn();
-  //   }, 7 * 60 * 1000);
-  // };
+    // Auto-stop after 1 minute
+    setTimeout(() => {
+      console.log("⏱️ Auto check-in stopped automatically after 1 minute");
+      stopAutoCheckIn();
+    }, 10 * 60 * 1000);
+  };
 
-  // const stopAutoCheckIn = () => {
-  //   if (autoCheckRef.current) {
-  //     clearInterval(autoCheckRef.current);
-  //     autoCheckRef.current = null;
-  //   }
-  //   console.log("🛑 Auto check-in test stopped");
-  //   setAutoTestRunning(false);
-  // };
+  const stopAutoCheckIn = () => {
+    if (autoCheckRef.current) {
+      clearInterval(autoCheckRef.current);
+      autoCheckRef.current = null;
+    }
+    console.log("🛑 Auto check-in test stopped");
+    setAutoTestRunning(false);
+  };
 
-  // // Cleanup when component unmounts
-  // useEffect(() => {
-  //   return () => stopAutoCheckIn();
-  // }, []);
+  // Cleanup when component unmounts
+  useEffect(() => {
+    return () => stopAutoCheckIn();
+  }, []);
 
   // const fetchStudents = useCallback(async () => {
   //   try {
@@ -496,20 +496,20 @@ const QRScanner: React.FC = () => {
             barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
           />
           <View style={{ position: "absolute", bottom: 40, right: 20 }}>
-            {/* <TouchableOpacity
-    onPress={() =>
-      autoTestRunning ? stopAutoCheckIn() : startAutoCheckIn()
-    }
-    style={{
-      padding: 12,
-      backgroundColor: autoTestRunning ? "red" : "green",
-      borderRadius: 8,
-    }}
-  >
-    <Text style={{ color: "white", fontWeight: "bold" }}>
-      {autoTestRunning ? "Stop Auto Test" : "Start Auto Test"}
-    </Text>
-  </TouchableOpacity> */}
+            <TouchableOpacity
+              onPress={() =>
+                autoTestRunning ? stopAutoCheckIn() : startAutoCheckIn()
+              }
+              style={{
+                padding: 12,
+                backgroundColor: autoTestRunning ? "red" : "green",
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ color: "white", fontWeight: "bold" }}>
+                {autoTestRunning ? "Stop Auto Test" : "Start Auto Test"}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* ✅ Overlay UI */}
