@@ -25,86 +25,86 @@ const audioSource = {
   uri: "https://nlsggkzpooovjifqcbig.supabase.co/storage/v1/object/public/image_storage/dontdelete/ringwav.wav",
 };
 
-const TEST_STUDENTS = [
-  "OH CHARMIAN",
-  "SHAJITHA MEHRIN SHAHUL",
-  "JASPER KOH",
-  "HANAN RAISSA HAIKAL",
-  "KAUSHI GAUR",
-  "AIZEN NAHYAAN MUZTAQQIM NABIL",
-  "RAPHAEL LIM ZHI HENG",
-  "OLIVIA NAVA NAVARATTINAM",
-  "ADHRITH LOKESH",
-  "ASHRITH LOKESH",
-  "AMITH LATIKE",
-  "ADELINE LIM XIN YUAN",
-  "KYLE WONG KAI XIAN",
-  "KRISTIAN SEAH",
-  "NAITHIK MIHAN",
-  "WOO SHI ZHENG JULIUS",
-  "JEANETTE EE YUE NING",
-  "AAVYA NAIR",
-  "SATHVIK PALLARLA",
-  "CHEE ZHENG YU JAVIER",
-  "ALYSSA GRACE ONG",
-  "BHUMI BAISA",
-  "AKASH BAISA",
-  "TRICIA LEE YEE CHEN",
-  "BOLLEBALLI NIHIRA",
-  "IFRAH NAJIAH",
-  "TARA DESITA CHIA",
-  "HE XIANG YI",
-  "ZENITH KHOO KHANG ZHI",
-  "AFFAN AFIQ",
-  "LUKE JEVON CONCEICAO",
-  "KENTO LOO LI XUAN",
-  "ARYAN KOYYA",
-  "THARSNAVEE MATHAN PRASATH",
-  "KAI SUBRATA",
-  "MATHEW JOSH",
-  "KHABIR ABDUL BIN MOHAMED HAFRIZ",
-  "SHAWN JIANG MINGZHE",
-  "SWASTHIKA MADHU",
-  "WANG MIAOZHU",
-  "CAELYN TEO",
-  "TANISHI MAITY",
-  "IMTIYAZ MUADZ BIN PUTERA MUHAMMAD ALI",
-  "EHSAN WALI BIN MUHAMMAD FADLY",
-  "ASHLYN NIU XUAN TING",
-  "AARAV VATSA",
-  "MINHAB WARRITH KHAN",
-  "ANANYA KARTHIK",
-  "BHAVYANSH YASAM",
-  "TAN XUAN YING",
-  "JENNA TEO",
-  "DEENA DESMUND",
-  "RESHVIN PRADYUSH",
-  "YAPARLA SKANDHA YASASHWI REDDY",
-  "LEE ZI XUAN",
-  "HEENAYA CHANDRAKAR",
-  "SOFIA ADRIANNA",
-  "PANVITH TAARAK PALADUGU",
-  "LUKAS ONGGARA",
-  "ANJANA RAMESH",
-  "WANG ANDI",
-  "DANIEL TEH",
-  "DHYAN ARADHYA",
-  "AVIRA BOOMINATHAN",
-  "ANGELA ZHANG",
-  "KEONNA CHENG JIA XUAN",
-  "TENG YONG JYU",
-  "HUANG JIALE",
-  "CINO ESTELLE MARY",
-  "ONA NEO",
-  "WANG YOU",
-  "SAANVI SREEJITH",
-  "REYERS POH",
-  "CHAN XIN YAN",
-  "ARYAN MODANI",
-  "LING RUI XIANG",
-  "MISHRA DISHANT",
-  "ARYAN YUNUS",
-];
+// const TEST_STUDENTS = [
+//   "OH CHARMIAN",
+//   "SHAJITHA MEHRIN SHAHUL",
+//   "JASPER KOH",
+//   "HANAN RAISSA HAIKAL",
+//   "KAUSHI GAUR",
+//   "AIZEN NAHYAAN MUZTAQQIM NABIL",
+//   "RAPHAEL LIM ZHI HENG",
+//   "OLIVIA NAVA NAVARATTINAM",
+//   "ADHRITH LOKESH",
+//   "ASHRITH LOKESH",
+//   "AMITH LATIKE",
+//   "ADELINE LIM XIN YUAN",
+//   "KYLE WONG KAI XIAN",
+//   "KRISTIAN SEAH",
+//   "NAITHIK MIHAN",
+//   "WOO SHI ZHENG JULIUS",
+//   "JEANETTE EE YUE NING",
+//   "AAVYA NAIR",
+//   "SATHVIK PALLARLA",
+//   "CHEE ZHENG YU JAVIER",
+//   "ALYSSA GRACE ONG",
+//   "BHUMI BAISA",
+//   "AKASH BAISA",
+//   "TRICIA LEE YEE CHEN",
+//   "BOLLEBALLI NIHIRA",
+//   "IFRAH NAJIAH",
+//   "TARA DESITA CHIA",
+//   "HE XIANG YI",
+//   "ZENITH KHOO KHANG ZHI",
+//   "AFFAN AFIQ",
+//   "LUKE JEVON CONCEICAO",
+//   "KENTO LOO LI XUAN",
+//   "ARYAN KOYYA",
+//   "THARSNAVEE MATHAN PRASATH",
+//   "KAI SUBRATA",
+//   "MATHEW JOSH",
+//   "KHABIR ABDUL BIN MOHAMED HAFRIZ",
+//   "SHAWN JIANG MINGZHE",
+//   "SWASTHIKA MADHU",
+//   "WANG MIAOZHU",
+//   "CAELYN TEO",
+//   "TANISHI MAITY",
+//   "IMTIYAZ MUADZ BIN PUTERA MUHAMMAD ALI",
+//   "EHSAN WALI BIN MUHAMMAD FADLY",
+//   "ASHLYN NIU XUAN TING",
+//   "AARAV VATSA",
+//   "MINHAB WARRITH KHAN",
+//   "ANANYA KARTHIK",
+//   "BHAVYANSH YASAM",
+//   "TAN XUAN YING",
+//   "JENNA TEO",
+//   "DEENA DESMUND",
+//   "RESHVIN PRADYUSH",
+//   "YAPARLA SKANDHA YASASHWI REDDY",
+//   "LEE ZI XUAN",
+//   "HEENAYA CHANDRAKAR",
+//   "SOFIA ADRIANNA",
+//   "PANVITH TAARAK PALADUGU",
+//   "LUKAS ONGGARA",
+//   "ANJANA RAMESH",
+//   "WANG ANDI",
+//   "DANIEL TEH",
+//   "DHYAN ARADHYA",
+//   "AVIRA BOOMINATHAN",
+//   "ANGELA ZHANG",
+//   "KEONNA CHENG JIA XUAN",
+//   "TENG YONG JYU",
+//   "HUANG JIALE",
+//   "CINO ESTELLE MARY",
+//   "ONA NEO",
+//   "WANG YOU",
+//   "SAANVI SREEJITH",
+//   "REYERS POH",
+//   "CHAN XIN YAN",
+//   "ARYAN MODANI",
+//   "LING RUI XIANG",
+//   "MISHRA DISHANT",
+//   "ARYAN YUNUS",
+// ];
 
 console.log("API:", API);
 const postJSON = async (path: string, body: object, accessToken: string) => {
@@ -163,44 +163,44 @@ const QRScanner: React.FC = () => {
 
   const lastScannedTimeStampRef = useRef(0);
 
-  const [autoTestRunning, setAutoTestRunning] = useState(false);
-  const autoCheckRef = useRef<NodeJS.Timer | null>(null);
+  // const [autoTestRunning, setAutoTestRunning] = useState(false);
+  // const autoCheckRef = useRef<NodeJS.Timer | null>(null);
 
-  const startAutoCheckIn = () => {
-    if (autoCheckRef.current) return; // prevent double starting
+  // const startAutoCheckIn = () => {
+  //   if (autoCheckRef.current) return; // prevent double starting
 
-    console.log("🚀 Auto check-in test started…");
-    setAutoTestRunning(true);
+  //   console.log("🚀 Auto check-in test started…");
+  //   setAutoTestRunning(true);
 
-    // Start the interval loop
-    autoCheckRef.current = setInterval(() => {
-      const randomName =
-        TEST_STUDENTS[Math.floor(Math.random() * TEST_STUDENTS.length)];
+  //   // Start the interval loop
+  //   autoCheckRef.current = setInterval(() => {
+  //     const randomName =
+  //       TEST_STUDENTS[Math.floor(Math.random() * TEST_STUDENTS.length)];
 
-      console.log("Checking in:", randomName);
-      handleCheckIn(randomName);
-    }, 1000); // every 1s
+  //     console.log("Checking in:", randomName);
+  //     handleCheckIn(randomName);
+  //   }, 1000); // every 1s
 
-    // Auto-stop after 1 minute
-    setTimeout(() => {
-      console.log("⏱️ Auto check-in stopped automatically after 1 minute");
-      stopAutoCheckIn();
-    }, 10 * 60 * 1000);
-  };
+  //   // Auto-stop after 1 minute
+  //   setTimeout(() => {
+  //     console.log("⏱️ Auto check-in stopped automatically after 1 minute");
+  //     stopAutoCheckIn();
+  //   }, 10 * 60 * 1000);
+  // };
 
-  const stopAutoCheckIn = () => {
-    if (autoCheckRef.current) {
-      clearInterval(autoCheckRef.current);
-      autoCheckRef.current = null;
-    }
-    console.log("🛑 Auto check-in test stopped");
-    setAutoTestRunning(false);
-  };
+  // const stopAutoCheckIn = () => {
+  //   if (autoCheckRef.current) {
+  //     clearInterval(autoCheckRef.current);
+  //     autoCheckRef.current = null;
+  //   }
+  //   console.log("🛑 Auto check-in test stopped");
+  //   setAutoTestRunning(false);
+  // };
 
-  // Cleanup when component unmounts
-  useEffect(() => {
-    return () => stopAutoCheckIn();
-  }, []);
+  // // Cleanup when component unmounts
+  // useEffect(() => {
+  //   return () => stopAutoCheckIn();
+  // }, []);
 
   // const fetchStudents = useCallback(async () => {
   //   try {
@@ -495,7 +495,7 @@ const QRScanner: React.FC = () => {
             animateShutter
             barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
           />
-          <View style={{ position: "absolute", bottom: 40, right: 20 }}>
+          {/* <View style={{ position: "absolute", bottom: 40, right: 20 }}>
             <TouchableOpacity
               onPress={() =>
                 autoTestRunning ? stopAutoCheckIn() : startAutoCheckIn()
@@ -510,7 +510,7 @@ const QRScanner: React.FC = () => {
                 {autoTestRunning ? "Stop Auto Test" : "Start Auto Test"}
               </Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
 
           {/* ✅ Overlay UI */}
           {showCheck && (
