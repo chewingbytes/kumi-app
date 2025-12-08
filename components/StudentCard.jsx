@@ -8,7 +8,7 @@ const StudentCard = React.memo(function StudentCard({
   sendWhatsappMessage,
   showSendingNotification,
   showSuccessNotification,
-  fetchStudents,
+  markParentNotified,
 }) {
   return (
     <View
@@ -55,7 +55,8 @@ const StudentCard = React.memo(function StudentCard({
 
             if (result) {
               showSuccessNotification(entry.student_name, result);
-              await fetchStudents(); // refresh to update parent_notified
+
+              markParentNotified(entry.id);
             } else {
               Alert.alert(
                 "Error",

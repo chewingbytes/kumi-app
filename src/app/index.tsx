@@ -73,6 +73,12 @@ export default function HomeScreen() {
     return res.json();
   };
 
+  const markParentNotified = (id) => {
+    setStudentsDashboard((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, parent_notified: true } : s))
+    );
+  };
+
   const postJSONWithBody = async (
     path: string,
     body: object,
@@ -114,17 +120,14 @@ export default function HomeScreen() {
     }
   }, []);
 
-  // 1. Store a stable notification ID that never resets on re-render
   const notificationIdRef = useRef(0);
 
-  // 2. ALWAYS replace the previous notification (never stack)
   const showSendingNotification = useCallback((studentName: string) => {
     const id = notificationIdRef.current++;
     const message = `Sending to ${studentName}'s parents...`;
 
     setSuccessNotifications([{ id, message, color: "#ECECEC" }]);
 
-    // auto-clear after 3s
     setTimeout(() => {
       setSuccessNotifications([]);
     }, 3000);
@@ -132,7 +135,6 @@ export default function HomeScreen() {
     return id; // in case you need to replace it later
   }, []);
 
-  // 3. Success/Error notification — also replaces previous one
   const showSuccessNotification = useCallback(
     (studentName: string, result: boolean) => {
       const id = notificationIdRef.current++;
@@ -207,14 +209,14 @@ export default function HomeScreen() {
         sendWhatsappMessage={sendWhatsappMessage}
         showSendingNotification={showSendingNotification}
         showSuccessNotification={showSuccessNotification}
-        fetchStudents={fetchStudents}
+        markParentNotified={markParentNotified}
       />
     ),
     [
       sendWhatsappMessage,
       showSendingNotification,
       showSuccessNotification,
-      fetchStudents,
+      markParentNotified,
       styles,
     ]
   );
