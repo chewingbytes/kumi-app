@@ -73,11 +73,11 @@ export default function HomeScreen() {
     return res.json();
   };
 
-  const markParentNotified = (id) => {
-    setStudentsDashboard((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, parent_notified: true } : s))
-    );
-  };
+  // const markParentNotified = (id) => {
+  //   setStudentsDashboard((prev) =>
+  //     prev.map((s) => (s.id === id ? { ...s, parent_notified: true } : s))
+  //   );
+  // };
 
   const postJSONWithBody = async (
     path: string,
@@ -96,93 +96,96 @@ export default function HomeScreen() {
     return res.json();
   };
 
-  const fetchStudents = useCallback(async () => {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+  // const fetchStudents = useCallback(async () => {
+  //   try {
+  //     const {
+  //       data: { session },
+  //     } = await supabase.auth.getSession();
 
-      const accessToken = session?.access_token;
+  //     const accessToken = session?.access_token;
 
-      const res = await fetch(API + "api/db/homescreenstudents", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
+  //     const res = await fetch(API + "api/db/homescreenstudents", {
+  //       method: "GET",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //         Authorization: `Bearer ${accessToken}`,
+  //       },
+  //     });
+  //     const json = await res.json();
+  //     if (json.error) throw new Error(json.error);
 
-      setStudentsDashboard(json.students);
-    } catch (error) {
-      console.error("Error fetching students:", error.message);
-    }
-  }, []);
+  //     setStudentsDashboard(json.students);
+  //   } catch (error) {
+  //     console.error("Error fetching students:", error.message);
+  //   }
+  // }, []);
 
-  const notificationIdRef = useRef(0);
+  // const notificationIdRef = useRef(0);
 
-  const showSendingNotification = useCallback((studentName: string) => {
-    const id = notificationIdRef.current++;
-    const message = `Sending to ${studentName}'s parents...`;
+  // // 2. ALWAYS replace the previous notification (never stack)
+  // const showSendingNotification = useCallback((studentName: string) => {
+  //   const id = notificationIdRef.current++;
+  //   const message = `Sending to ${studentName}'s parents...`;
 
-    setSuccessNotifications([{ id, message, color: "#ECECEC" }]);
+  //   setSuccessNotifications([{ id, message, color: "#ECECEC" }]);
 
-    setTimeout(() => {
-      setSuccessNotifications([]);
-    }, 3000);
+  //   // auto-clear after 3s
+  //   setTimeout(() => {
+  //     setSuccessNotifications([]);
+  //   }, 3000);
 
-    return id; // in case you need to replace it later
-  }, []);
+  //   return id; // in case you need to replace it later
+  // }, []);
 
-  const showSuccessNotification = useCallback(
-    (studentName: string, result: boolean) => {
-      const id = notificationIdRef.current++;
+  // // 3. Success/Error notification — also replaces previous one
+  // const showSuccessNotification = useCallback(
+  //   (studentName: string, result: boolean) => {
+  //     const id = notificationIdRef.current++;
 
-      const message = result
-        ? `Message sent successfully to ${studentName}'s parents!`
-        : "An error occurred";
+  //     const message = result
+  //       ? `Message sent successfully to ${studentName}'s parents!`
+  //       : "An error occurred";
 
-      setSuccessNotifications([{ id, message, color: "#D4EDDA" }]);
+  //     setSuccessNotifications([{ id, message, color: "#D4EDDA" }]);
 
-      setTimeout(() => {
-        setSuccessNotifications([]);
-      }, 3000);
-    },
-    []
-  );
+  //     setTimeout(() => {
+  //       setSuccessNotifications([]);
+  //     }, 3000);
+  //   },
+  //   []
+  // );
 
-  const sendWhatsappMessage = useCallback(async (name: string) => {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+  // const sendWhatsappMessage = useCallback(async (name: string) => {
+  //   try {
+  //     const {
+  //       data: { session },
+  //     } = await supabase.auth.getSession();
 
-      const accessToken = session?.access_token;
+  //     const accessToken = session?.access_token;
 
-      if (!accessToken) {
-        Alert.alert("Error", "No access token found. Please log in again.");
-        return;
-      }
+  //     if (!accessToken) {
+  //       Alert.alert("Error", "No access token found. Please log in again.");
+  //       return;
+  //     }
 
-      const res = await postJSONWithBody(
-        "api/db/sendMessage",
-        { name },
-        accessToken
-      );
-      console.log("REESS:", res);
+  //     const res = await postJSONWithBody(
+  //       "api/db/sendMessage",
+  //       { name },
+  //       accessToken
+  //     );
+  //     console.log("REESS:", res);
 
-      if (res === false) {
-        return false;
-      } else if (res === true) {
-        return true;
-      }
-    } catch (err) {
-      console.error("sendWhatsappMessage error:", err);
-      Alert.alert("Error", "Something went wrong while sending the message.");
-      return false;
-    }
-  }, []);
+  //     if (res === false) {
+  //       return false;
+  //     } else if (res === true) {
+  //       return true;
+  //     }
+  //   } catch (err) {
+  //     console.error("sendWhatsappMessage error:", err);
+  //     Alert.alert("Error", "Something went wrong while sending the message.");
+  //     return false;
+  //   }
+  // }, []);
 
   const finishDay = useCallback(async () => {
     const {
@@ -196,30 +199,30 @@ export default function HomeScreen() {
     setDropdownVisible(false);
   }, []);
 
-  useEffect(() => {
-    fetchStudents();
-  }, []);
+  // useEffect(() => {
+  //   fetchStudents();
+  // }, []);
 
-  const renderStudent = useCallback(
-    ({ item }) => (
-      <StudentCard
-        //@ts-ignore
-        entry={item}
-        styles={styles}
-        sendWhatsappMessage={sendWhatsappMessage}
-        showSendingNotification={showSendingNotification}
-        showSuccessNotification={showSuccessNotification}
-        markParentNotified={markParentNotified}
-      />
-    ),
-    [
-      sendWhatsappMessage,
-      showSendingNotification,
-      showSuccessNotification,
-      markParentNotified,
-      styles,
-    ]
-  );
+  // const renderStudent = useCallback(
+  //   ({ item }) => (
+  //     <StudentCard
+  //       //@ts-ignore
+  //       entry={item}
+  //       styles={styles}
+  //       sendWhatsappMessage={sendWhatsappMessage}
+  //       showSendingNotification={showSendingNotification}
+  //       showSuccessNotification={showSuccessNotification}
+  //       markParentNotified={markParentNotified}
+  //     />
+  //   ),
+  //   [
+  //     sendWhatsappMessage,
+  //     showSendingNotification,
+  //     showSuccessNotification,
+  //     markParentNotified,
+  //     styles,
+  //   ]
+  // );
 
   if (!fontsLoaded) {
     return null;
@@ -227,7 +230,7 @@ export default function HomeScreen() {
     return (
       <SafeAreaView style={[styles.container]}>
         <View style={styles.rowLayout}>
-          <View style={styles.leftList}>
+          {/* <View style={styles.leftList}>
             <Text style={styles.infoTitle}>Student List</Text>
             <TextInput
               placeholder="Search student..."
@@ -255,7 +258,7 @@ export default function HomeScreen() {
                 )
               }
             />
-          </View>
+          </View> */}
 
           {/* Hamburger Menu */}
           <View style={styles.rightContent}>
@@ -334,7 +337,7 @@ export default function HomeScreen() {
             )}
           </View>
         </View>
-        <View
+        {/* <View
           style={{
             position: "absolute",
             top: 20,
@@ -370,7 +373,7 @@ export default function HomeScreen() {
               </Text>
             </Animated.View>
           ))}
-        </View>
+        </View> */}
       </SafeAreaView>
     );
   }
