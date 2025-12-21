@@ -4,7 +4,13 @@ import * as DocumentPicker from "expo-document-picker";
 import { supabase } from "../../lib/supabase";
 import Constants from "expo-constants";
 const API = Constants.expoConfig?.extra?.EXPO_PUBLIC_API_BASE;
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from "react";
 import {
   View,
   Pressable,
@@ -35,8 +41,40 @@ export default function StudentListScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [successNotifications, setSuccessNotifications] = useState<
-    { id: number; message: string }[]
+    { id: number; message: string; color: string }[]
   >([]);
+
+  const sendWhatsappMessage = useCallback(async (name: string) => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const accessToken = session?.access_token;
+
+      if (!accessToken) {
+        Alert.alert("Error", "No access token found. Please log in again.");
+        return;
+      }
+
+      const res = await postJSONWithBody(
+        "api/db/sendMessage",
+        { name },
+        accessToken
+      );
+      console.log("REESS:", res);
+
+      if (res === false) {
+        return false;
+      } else if (res === true) {
+        return true;
+      }
+    } catch (err) {
+      console.error("sendWhatsappMessage error:", err);
+      Alert.alert("Error", "Something went wrong while sending the message.");
+      return false;
+    }
+  }, []);
 
   const handleDeleteStudent = async (studentId) => {
     if (isProcessing) return;
@@ -87,36 +125,10 @@ export default function StudentListScreen() {
     }
   };
 
-  const sendWhatsappMessage = async (name: string) => {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      const accessToken = session?.access_token;
-
-      if (!accessToken) {
-        Alert.alert("Error", "No access token found. Please log in again.");
-        return;
-      }
-
-      const res = await postJSONWithBody(
-        "api/db/sendMessage",
-        { name },
-        accessToken
-      );
-      console.log("REESS:", res);
-
-      if (res === false) {
-        return false;
-      } else if (res === true) {
-        return true;
-      }
-    } catch (err) {
-      console.error("sendWhatsappMessage error:", err);
-      Alert.alert("Error", "Something went wrong while sending the message.");
-      return false;
-    }
+  const markParentNotified = (id) => {
+    setStudentsDashboard((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, parent_notified: true } : s))
+    );
   };
 
   useEffect(() => {
@@ -159,7 +171,7 @@ export default function StudentListScreen() {
     return res.json();
   };
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       const {
         data: { session },
@@ -180,47 +192,46 @@ export default function StudentListScreen() {
     } catch (error) {
       console.error("Error fetching students:", error.message);
     }
-  };
+  }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchStudents();
-    }, [])
-  );
+  const filteredStudents = useMemo(() => {
+    return studentsDashboard.filter((e) =>
+      e.student_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [studentsDashboard, searchQuery]);
 
   const notificationIdRef = useRef(0);
 
-  const showSendingNotification = (studentName: string) => {
+  const showSendingNotification = useCallback((studentName: string) => {
     const id = notificationIdRef.current++;
     const message = `Sending to ${studentName}'s parents...`;
 
-    setSuccessNotifications((prev) => [...prev, { id, message }]);
+    setSuccessNotifications([{ id, message, color: "#ECECEC" }]);
 
+    // auto-clear after 3s
     setTimeout(() => {
-      setSuccessNotifications((prev) =>
-        prev.filter((notif) => notif.id !== id)
-      );
+      setSuccessNotifications([]);
     }, 3000);
 
-    return id; // return the id so we can remove/replace it later
-  };
+    return id; // in case you need to replace it later
+  }, []);
 
-  const showSuccessNotification = (studentName: string, result: boolean) => {
-    const id = notificationIdRef.current++; // persist ID between renders
-    const message =
-      result === true
+  const showSuccessNotification = useCallback(
+    (studentName: string, result: boolean) => {
+      const id = notificationIdRef.current++;
+
+      const message = result
         ? `Message sent successfully to ${studentName}'s parents!`
         : "An error occurred";
 
-    setSuccessNotifications((prev) => [...prev, { id, message }]);
+      setSuccessNotifications([{ id, message, color: "#D4EDDA" }]);
 
-    // auto-hide after 3 seconds
-    setTimeout(() => {
-      setSuccessNotifications((prev) =>
-        prev.filter((notif) => notif.id !== id)
-      );
-    }, 3000);
-  };
+      setTimeout(() => {
+        setSuccessNotifications([]);
+      }, 3000);
+    },
+    []
+  );
 
   return (
     <SafeAreaView
@@ -256,123 +267,114 @@ export default function StudentListScreen() {
               style={{ flex: 1 }}
             >
               {studentsDashboard && studentsDashboard.length > 0 ? (
-                [...studentsDashboard]
-                  .filter((e) =>
-                    e.student_name
-                      ?.toLowerCase()
-                      .includes(searchQuery.toLowerCase())
-                  )
-                  .map((entry, idx) => (
-                    <Pressable
-                      key={idx}
-                      style={[
-                        styles.card,
-                        entry.status === "checked_in" ? styles.in : styles.out,
-                      ]}
-                      onPress={() => {
-                        setSelectedStudent(entry);
-                        setManualSelect(true);
-                      }}
-                    >
+                [...filteredStudents].map((entry, idx) => (
+                  <Pressable
+                    key={idx}
+                    style={[
+                      styles.card,
+                      entry.status === "checked_in" ? styles.in : styles.out,
+                    ]}
+                    onPress={() => {
+                      setSelectedStudent(entry);
+                      setManualSelect(true);
+                    }}
+                  >
+                    <View>
                       <View>
-                        <View>
-                          <Text
-                            style={[
-                              styles.cardTitle,
-                              selectedStudent?.id === entry.id &&
-                                styles.selectedUnderline,
-                            ]}
-                          >
-                            {entry.student_name}{" "}
-                          </Text>
-
-                          <Text
-                            style={[
-                              styles.statusText,
-                              entry.status === "checked_in"
-                                ? styles.checkedIn
-                                : styles.checkedOut,
-                            ]}
-                          >
-                            {entry.status === "checked_in"
-                              ? "Checked In"
-                              : "Checked Out"}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {selectedStudent === entry.id && (
-                        <View
-                          style={{
-                            position: "absolute",
-                            top: 45,
-                            right: 15,
-                            backgroundColor: "#fff",
-                            borderColor: "#1F3C88",
-                            borderWidth: 3,
-                            borderRadius: 8,
-                            zIndex: 1000,
-                          }}
-                        >
-                          <Pressable
-                            disabled={isProcessing}
-                            onPress={() => {
-                              if (!isProcessing)
-                                handleDeleteStudent(selectedStudent.student_id);
-                            }}
-                            style={{
-                              padding: 10,
-                              borderRadius: 4,
-                              backgroundColor: "#B00020",
-                              opacity: isProcessing ? 0.5 : 1,
-                            }}
-                          >
-                            <Text
-                              style={{
-                                color: "#fff0f0",
-                                fontFamily: "DynaPuff_400Regular",
-                              }}
-                            >
-                              Delete Record
-                            </Text>
-                          </Pressable>
-                        </View>
-                      )}
-
-                      {entry.status === "checked_out" ? (
-                        <TouchableOpacity
+                        <Text
                           style={[
-                            styles.button,
-                            { marginTop: 10, paddingVertical: 8 },
+                            styles.cardTitle,
+                            selectedStudent?.id === entry.id &&
+                              styles.selectedUnderline,
                           ]}
-                          onPress={async () => {
-                            showSendingNotification(entry.student_name);
+                        >
+                          {entry.student_name}{" "}
+                        </Text>
 
-                            const result = await sendWhatsappMessage(
-                              entry.student_name
-                            );
+                        <Text
+                          style={[
+                            styles.statusText,
+                            entry.status === "checked_in"
+                              ? styles.checkedIn
+                              : styles.checkedOut,
+                          ]}
+                        >
+                          {entry.status === "checked_in"
+                            ? "Checked In"
+                            : "Checked Out"}
+                        </Text>
+                      </View>
+                    </View>
 
-                            if (result) {
-                              showSuccessNotification(
-                                entry.student_name,
-                                result
-                              );
-                              await fetchStudents(); // refresh dashboard to update parent_notified
-                            } else {
-                              Alert.alert(
-                                "Error",
-                                `Failed to send message to ${entry.student_name}'s parents.`
-                              );
-                            }
+                    {selectedStudent === entry.id && (
+                      <View
+                        style={{
+                          position: "absolute",
+                          top: 45,
+                          right: 15,
+                          backgroundColor: "#fff",
+                          borderColor: "#1F3C88",
+                          borderWidth: 3,
+                          borderRadius: 8,
+                          zIndex: 1000,
+                        }}
+                      >
+                        <Pressable
+                          disabled={isProcessing}
+                          onPress={() => {
+                            if (!isProcessing)
+                              handleDeleteStudent(selectedStudent.student_id);
+                          }}
+                          style={{
+                            padding: 10,
+                            borderRadius: 4,
+                            backgroundColor: "#B00020",
+                            opacity: isProcessing ? 0.5 : 1,
                           }}
                         >
-                          <Text style={styles.text}>
-                            {entry.parent_notified ? "Notify Again" : "Notify"}
+                          <Text
+                            style={{
+                              color: "#fff0f0",
+                              fontFamily: "DynaPuff_400Regular",
+                            }}
+                          >
+                            Delete Record
                           </Text>
-                        </TouchableOpacity>
-                      ) : null}
-                    </Pressable>
-                  ))
+                        </Pressable>
+                      </View>
+                    )}
+
+                    {entry.status === "checked_out" ? (
+                      <TouchableOpacity
+                        style={[
+                          styles.button,
+                          { marginTop: 10, paddingVertical: 8 },
+                        ]}
+                        onPress={async () => {
+                          showSendingNotification(entry.student_name);
+
+                          const result = await sendWhatsappMessage(
+                            entry.student_name
+                          );
+
+                          if (result) {
+                            showSuccessNotification(entry.student_name, result);
+                            markParentNotified(entry.id); // refresh dashboard to update parent_notified
+                          } else {
+                            Alert.alert(
+                              "Error",
+                              `Failed to send message to ${entry.student_name}'s parents.`
+                            );
+                          }
+                        }}
+                      >
+                        <Text style={styles.text}>
+                          {entry.parent_notified ? "Notify Again" : "Notify"}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </Pressable>
+                ))
               ) : (
                 <SafeAreaView style={styles.loadingSafeArea}>
                   <Text>No students found.</Text>
@@ -382,7 +384,7 @@ export default function StudentListScreen() {
 
             <View style={styles.totalCountContainer}>
               <Text style={styles.totalCountText}>
-                Total Students: {studentsDashboard.length}
+                Total Students: {filteredStudents.length}
               </Text>
             </View>
           </View>
@@ -526,7 +528,7 @@ export default function StudentListScreen() {
             style={{
               marginTop: index * 10, // stack them vertically
               width: 280,
-              backgroundColor: "#D4EDDA",
+              backgroundColor: notif.color,
               borderColor: "#155724",
               borderWidth: 2,
               borderRadius: 12,
@@ -540,7 +542,7 @@ export default function StudentListScreen() {
             <Text
               style={{
                 fontSize: 18,
-                fontFamily: "Courier-Bold",
+                fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
                 color: "#155724",
               }}
             >
