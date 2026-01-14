@@ -106,12 +106,7 @@ const audioSource = {
 //   "ARYAN YUNUS",
 // ];
 
-console.log("API:", API);
 const postJSON = async (path: string, body: object, accessToken: string) => {
-  console.log("querying:", path);
-  console.log("with body:", body);
-  console.log("querying th efucking shit:", API + path);
-  console.log("TEOKEN:", accessToken);
   const res = await fetch(API + path, {
     method: "POST",
     headers: {
@@ -142,11 +137,13 @@ interface QRData {
 const QRScanner: React.FC = () => {
   const player = useAudioPlayer(audioSource);
 
-  const [animationText, setAnimationText] = useState<string | null>(null);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  // const [animationText, setAnimationText] = useState<string | null>(null);
+  // const fadeAnim = useRef(new Animated.Value(0)).current;
+  // const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // const [loading, setLoading] = useState<boolean>(false);
+  // const [studentsDashboard, setStudentsDashboard] = useState<Array<any>>([]);
 
   const [hasCameraPermission, setCameraPermission] = useState<boolean | null>(
     null
@@ -223,7 +220,6 @@ const QRScanner: React.FC = () => {
   //     const json = await res.json();
   //     if (json.error) throw new Error(json.error);
 
-  //     console.log("✅ Refreshed students:", json.students);
   //     setStudentsDashboard(json.students);
   //   } catch (error: any) {
   //     console.error("Error fetching students:", error.message);
@@ -333,7 +329,6 @@ const QRScanner: React.FC = () => {
 
   const handleCheckOut = async (name: string) => {
     // showFullScreenAnimation(`Bye, ${name}!`);
-    console.log("CHEKCING OUT NAME:", name);
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -387,63 +382,65 @@ const QRScanner: React.FC = () => {
     });
   };
 
-  const handleBarCodeScanned = async ({ data }) => {
-    try {
-      const timestamp = Date.now();
+  const handleBarCodeScanned = useCallback(
+    async ({ data }) => {
+      try {
+        const timestamp = Date.now();
 
-      if (scanned || timestamp - lastScannedTimeStampRef.current < 2000) {
-        return;
-      }
+        if (scanned || timestamp - lastScannedTimeStampRef.current < 2000) {
+          return;
+        }
 
-      setScanned(true); // Prevent further scans immediately
+        setScanned(true); // Prevent further scans immediately
 
-      lastScannedTimeStampRef.current = timestamp;
+        lastScannedTimeStampRef.current = timestamp;
 
-      const name = data.trim();
+        const name = data.trim();
 
-      player.seekTo(0);
-      player.play();
+        player.seekTo(0);
+        player.play();
 
-      triggerCheckAnimation();
+        triggerCheckAnimation();
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      const accessToken = session?.access_token;
+        const accessToken = session?.access_token;
 
-      const status = await getJSON(
-        `api/db/status/${encodeURIComponent(name)}`,
-        accessToken
-      );
-
-      if (!status.found) {
-        return handleCheckIn(name);
-      }
-
-      if (status.record.status === "checked_out") {
-        Alert.alert(
-          "Already Checked Out",
-          `${name} is already checked out. Check in again?`,
-          [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Check In",
-              onPress: async () => {
-                await handleCheckIn(name);
-              },
-            },
-          ]
+        const status = await getJSON(
+          `api/db/status/${encodeURIComponent(name)}`,
+          accessToken
         );
-      } else {
-        console.log("HANDLING CHCKOUT WITH NAME:", name);
-        handleCheckOut(name);
+
+        if (!status.found) {
+          return handleCheckIn(name);
+        }
+
+        if (status.record.status === "checked_out") {
+          Alert.alert(
+            "Already Checked Out",
+            `${name} is already checked out. Check in again?`,
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Check In",
+                onPress: async () => {
+                  await handleCheckIn(name);
+                },
+              },
+            ]
+          );
+        } else {
+          handleCheckOut(name);
+        }
+      } catch (error) {
+        console.error("error:", error);
+        Alert.alert("Invalid QR Code", "Unable to process the QR code.");
       }
-    } catch (error) {
-      console.error("error:", error);
-      Alert.alert("Invalid QR Code", "Unable to process the QR code.");
-    }
-  };
+    },
+    [scanned, player, facing]
+  );
 
   // let notificationId = 0; // outside component, or use useRef for persistent ID
 

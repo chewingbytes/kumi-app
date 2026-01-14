@@ -2,6 +2,7 @@
 //http://192.168.0.203:4000/
 import * as DocumentPicker from "expo-document-picker";
 import { supabase } from "../../lib/supabase";
+import StudentCard from "../../components/StudentCard";
 import Constants from "expo-constants";
 const API = Constants.expoConfig?.extra?.EXPO_PUBLIC_API_BASE;
 import React, {
@@ -27,6 +28,7 @@ import {
   ImageBackground,
   ActivityIndicator,
   Animated,
+  FlatList,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
@@ -62,7 +64,6 @@ export default function StudentListScreen() {
         { name },
         accessToken
       );
-      console.log("REESS:", res);
 
       if (res === false) {
         return false;
@@ -134,8 +135,6 @@ export default function StudentListScreen() {
   useEffect(() => {
     if (studentsDashboard.length > 0 && !manualSelect) {
       setSelectedStudent(studentsDashboard[studentsDashboard.length - 1]);
-
-      console.log("STUDENTSDAHSBORD:", studentsDashboard);
     }
   }, [studentsDashboard, manualSelect]);
 
@@ -144,10 +143,6 @@ export default function StudentListScreen() {
     body: object,
     accessToken: string
   ) => {
-    console.log("querying:", path);
-    console.log("with body:", body);
-    console.log("querying th efucking shit:", API + path);
-    console.log("TEOKEN:", accessToken);
     const res = await fetch(API + path, {
       method: "POST",
       headers: {
@@ -194,6 +189,12 @@ export default function StudentListScreen() {
     }
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchStudents();
+    }, [fetchStudents])
+  );
+
   const filteredStudents = useMemo(() => {
     return studentsDashboard.filter((e) =>
       e.student_name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -208,12 +209,11 @@ export default function StudentListScreen() {
 
     setSuccessNotifications([{ id, message, color: "#ECECEC" }]);
 
-    // auto-clear after 3s
     setTimeout(() => {
       setSuccessNotifications([]);
     }, 3000);
 
-    return id; // in case you need to replace it later
+    return id;
   }, []);
 
   const showSuccessNotification = useCallback(
@@ -262,125 +262,42 @@ export default function StudentListScreen() {
               placeholderTextColor="#888"
             />
 
-            <ScrollView
-              contentContainerStyle={{ paddingBottom: 20 }}
+            <FlatList
+              data={filteredStudents}
+              keyExtractor={(item) => item.id.toString()}
+              initialNumToRender={10} // Only render 10 at first
+              maxToRenderPerBatch={5} // Add 5 more at a time as user scrolls
+              windowSize={5} // Keep only a small amount of memory active
+              removeClippedSubviews={true} // Unload items that are off-screen
               style={{ flex: 1 }}
-            >
-              {studentsDashboard && studentsDashboard.length > 0 ? (
-                [...filteredStudents].map((entry, idx) => (
-                  <Pressable
-                    key={idx}
-                    style={[
-                      styles.card,
-                      entry.status === "checked_in" ? styles.in : styles.out,
-                    ]}
-                    onPress={() => {
-                      setSelectedStudent(entry);
-                      setManualSelect(true);
-                    }}
-                  >
-                    <View>
-                      <View>
-                        <Text
-                          style={[
-                            styles.cardTitle,
-                            selectedStudent?.id === entry.id &&
-                              styles.selectedUnderline,
-                          ]}
-                        >
-                          {entry.student_name}{" "}
-                        </Text>
-
-                        <Text
-                          style={[
-                            styles.statusText,
-                            entry.status === "checked_in"
-                              ? styles.checkedIn
-                              : styles.checkedOut,
-                          ]}
-                        >
-                          {entry.status === "checked_in"
-                            ? "Checked In"
-                            : "Checked Out"}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {selectedStudent === entry.id && (
-                      <View
-                        style={{
-                          position: "absolute",
-                          top: 45,
-                          right: 15,
-                          backgroundColor: "#fff",
-                          borderColor: "#1F3C88",
-                          borderWidth: 3,
-                          borderRadius: 8,
-                          zIndex: 1000,
-                        }}
-                      >
-                        <Pressable
-                          disabled={isProcessing}
-                          onPress={() => {
-                            if (!isProcessing)
-                              handleDeleteStudent(selectedStudent.student_id);
-                          }}
-                          style={{
-                            padding: 10,
-                            borderRadius: 4,
-                            backgroundColor: "#B00020",
-                            opacity: isProcessing ? 0.5 : 1,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              color: "#fff0f0",
-                              fontFamily: "DynaPuff_400Regular",
-                            }}
-                          >
-                            Delete Record
-                          </Text>
-                        </Pressable>
-                      </View>
-                    )}
-
-                    {entry.status === "checked_out" ? (
-                      <TouchableOpacity
-                        style={[
-                          styles.button,
-                          { marginTop: 10, paddingVertical: 8 },
-                        ]}
-                        onPress={async () => {
-                          showSendingNotification(entry.student_name);
-
-                          const result = await sendWhatsappMessage(
-                            entry.student_name
-                          );
-
-                          if (result) {
-                            showSuccessNotification(entry.student_name, result);
-                            markParentNotified(entry.id); // refresh dashboard to update parent_notified
-                          } else {
-                            Alert.alert(
-                              "Error",
-                              `Failed to send message to ${entry.student_name}'s parents.`
-                            );
-                          }
-                        }}
-                      >
-                        <Text style={styles.text}>
-                          {entry.parent_notified ? "Notify Again" : "Notify"}
-                        </Text>
-                      </TouchableOpacity>
-                    ) : null}
-                  </Pressable>
-                ))
-              ) : (
-                <SafeAreaView style={styles.loadingSafeArea}>
-                  <Text>No students found.</Text>
-                </SafeAreaView>
+              renderItem={({ item }) => (
+                <StudentCard
+                  entry={item}
+                  isSelected={selectedStudent?.id === item.id}
+                  isProcessing={isProcessing}
+                  onSelect={(student) => {
+                    setSelectedStudent(student);
+                    setManualSelect(true);
+                  }}
+                  onDelete={(id) => handleDeleteStudent(id)}
+                  onNotify={async (student) => {
+                    showSendingNotification(student.student_name);
+                    const result = await sendWhatsappMessage(
+                      student.student_name
+                    );
+                    if (result) {
+                      showSuccessNotification(student.student_name, result);
+                      markParentNotified(student.id);
+                    }
+                  }}
+                />
               )}
-            </ScrollView>
+              ListEmptyComponent={() => (
+                <View style={styles.loadingSafeArea}>
+                  <Text>No students found.</Text>
+                </View>
+              )}
+            />
 
             <View style={styles.totalCountContainer}>
               <Text style={styles.totalCountText}>
@@ -651,147 +568,6 @@ const styles = StyleSheet.create({
     fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
   },
 
-  primaryButton: {
-    backgroundColor: "#3B185F",
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginVertical: 10,
-    borderWidth: 2,
-    borderColor: "#FEC260",
-  },
-
-  primaryButtonText: {
-    color: "#FEC260",
-    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
-    textTransform: "uppercase",
-  },
-
-  uploadCSVButton: {
-    backgroundColor: "#FFF5E4",
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#3B185F",
-    alignItems: "center",
-    marginVertical: 10,
-  },
-
-  uploadCsvText: {
-    color: "#3B185F",
-    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
-  },
-
-  secondaryButton: {
-    backgroundColor: "#FDEEDC",
-    borderWidth: 2,
-    borderColor: "#3B185F",
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginVertical: 10,
-  },
-
-  secondaryButtonText: {
-    color: "#3B185F",
-    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
-  },
-
-  dropdown: {
-    backgroundColor: "#FFF5E4",
-    borderRadius: 12,
-    elevation: 6,
-    padding: 12,
-    borderWidth: 2,
-    borderColor: "#3B185F",
-  },
-
-  dropdownItem: {
-    paddingVertical: 12,
-    fontSize: 18,
-    color: "#3B185F",
-    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
-  },
-
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "#FFF5E4",
-    padding: 20,
-    borderTopWidth: 4,
-    borderColor: "#3B185F",
-  },
-
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-
-  modalTitle: {
-    fontSize: 26,
-    color: "#3B185F",
-    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
-  },
-
-  modalCloseBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#FEC260",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  modalCloseText: {
-    color: "#3B185F",
-    fontSize: 18,
-    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
-  },
-
-  addButton: {
-    backgroundColor: "#59C1BD",
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: "#3B185F",
-  },
-
-  addButtonText: {
-    color: "#FFF5E4",
-    fontSize: 20,
-    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
-  },
-
-  studentItem: {
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: 14,
-    backgroundColor: "#FFF5E4",
-    borderWidth: 3,
-    borderColor: "#3B185F",
-    shadowColor: "#000",
-    shadowOffset: { width: 3, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-
-  studentName: {
-    fontSize: 22,
-    color: "#3B185F",
-    marginBottom: 6,
-    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
-  },
-
-  studentParentLabel: {
-    fontSize: 16,
-    color: "#3B185F",
-    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
-  },
-
   mainRow: {
     flex: 1,
     flexDirection: "row",
@@ -849,49 +625,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#1F3C88",
     marginTop: 20,
-    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
-  },
-
-  statusText: {
-    fontSize: 16,
-    color: "#1F3C88",
-    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
-  },
-
-  checkedIn: { color: "#59C1BD" },
-  checkedOut: { color: "#C147E9" },
-
-  removeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#C147E9",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  removeButtonText: {
-    color: "#FFF5E4",
-    fontSize: 18,
-    fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
-  },
-  selectedUnderline: {
-    textDecorationLine: "underline",
-    textDecorationColor: "#004A7C", // choose your color
-    textDecorationStyle: "solid",
-  },
-
-  button: {
-    backgroundColor: "#33B5E5",
-    paddingVertical: 8,
-    paddingHorizontal: 32,
-    borderRadius: 30,
-    elevation: 5,
-  },
-  text: {
-    fontSize: 18,
-    color: "#fff",
-    textAlign: "center",
     fontFamily: "DynaPuff_400Regular", // or Dancing Script / Great Vibes
   },
 

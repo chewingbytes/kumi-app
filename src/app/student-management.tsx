@@ -153,7 +153,6 @@ export default function MyStudentsScreen() {
 
   const uploadPickedCSV = async () => {
     if (!pickedCSV) {
-      console.log("No file picked!");
       return Alert.alert("No file", "Please pick a CSV file first.");
     }
 
@@ -202,7 +201,6 @@ export default function MyStudentsScreen() {
   };
 
   const openEditModal = (student) => {
-    console.log("OPEN EDIT MODAL");
 
     setEditingStudent(student);
 
@@ -255,7 +253,6 @@ export default function MyStudentsScreen() {
 
       const accessToken = session?.access_token;
 
-      console.log("SNEDING REQUEST:", API + "api/db/students");
 
       const res = await fetch(API + "api/db/students", {
         method: "POST",
@@ -359,10 +356,6 @@ export default function MyStudentsScreen() {
       showStatusNotification(`Deleting ${studentToDelete.name}...`);
       if (!studentToDelete) return;
 
-      console.log("STUDENT TO DELTE OBJECT:", studentToDelete);
-
-      console.log("ID:", studentToDelete.id);
-      console.log("aprent ID:", studentToDelete.parent_id);
 
       const {
         data: { session },
