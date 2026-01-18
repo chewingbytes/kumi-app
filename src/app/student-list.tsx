@@ -46,6 +46,20 @@ export default function StudentListScreen() {
     { id: number; message: string; color: string }[]
   >([]);
 
+  // Store timeout IDs to clear them on unmount
+  const notificationTimeoutsRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
+  const notificationIdRef = useRef(0);
+
+  // Cleanup all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(notificationTimeoutsRef.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+      notificationTimeoutsRef.current = {};
+    };
+  }, []);
+
   const sendWhatsappMessage = useCallback(async (name: string) => {
     try {
       const {
@@ -136,7 +150,7 @@ export default function StudentListScreen() {
     if (studentsDashboard.length > 0 && !manualSelect) {
       setSelectedStudent(studentsDashboard[studentsDashboard.length - 1]);
     }
-  }, [studentsDashboard, manualSelect]);
+  }, [manualSelect]);
 
   const postJSONWithBody = async (
     path: string,
@@ -201,17 +215,18 @@ export default function StudentListScreen() {
     );
   }, [studentsDashboard, searchQuery]);
 
-  const notificationIdRef = useRef(0);
-
   const showSendingNotification = useCallback((studentName: string) => {
     const id = notificationIdRef.current++;
     const message = `Sending to ${studentName}'s parents...`;
 
     setSuccessNotifications([{ id, message, color: "#ECECEC" }]);
 
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       setSuccessNotifications([]);
+      delete notificationTimeoutsRef.current[id];
     }, 3000);
+
+    notificationTimeoutsRef.current[id] = timeoutId;
 
     return id;
   }, []);
@@ -226,9 +241,12 @@ export default function StudentListScreen() {
 
       setSuccessNotifications([{ id, message, color: "#D4EDDA" }]);
 
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setSuccessNotifications([]);
+        delete notificationTimeoutsRef.current[id];
       }, 3000);
+
+      notificationTimeoutsRef.current[id] = timeoutId;
     },
     []
   );
@@ -243,7 +261,7 @@ export default function StudentListScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.push("/")}
+            onPress={() => router.replace("/")}
           >
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>

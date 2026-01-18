@@ -13,7 +13,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Camera, CameraView, CameraType } from "expo-camera";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import * as Linking from "expo-linking";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -182,7 +182,7 @@ const QRScanner: React.FC = () => {
   //   setTimeout(() => {
   //     console.log("⏱️ Auto check-in stopped automatically after 1 minute");
   //     stopAutoCheckIn();
-  //   }, 10 * 60 * 1000);
+  //   }, 5 * 60 * 1000);
   // };
 
   // const stopAutoCheckIn = () => {
@@ -341,7 +341,9 @@ const QRScanner: React.FC = () => {
       Alert.alert("Error", error);
     }
 
-    router.push("/");
+    // Use replace instead of push to avoid navigation stack bloat
+    // This replaces the scanner in the stack instead of stacking on top
+    router.replace("/");
   };
 
   const handleCheckIn = async (name: string) => {
@@ -357,11 +359,26 @@ const QRScanner: React.FC = () => {
     if (error) {
       Alert.alert("Error", error);
     }
-    router.push("/");
+
+    // Use replace instead of push to avoid navigation stack bloat
+    // This replaces the scanner in the stack instead of stacking on top
+    router.replace("/");
   };
 
   const [showCheck, setShowCheck] = useState(false);
   const checkAnim = useRef(new Animated.Value(0)).current;
+  const checkAnimTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const checkAnimTimeoutRef2 = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (checkAnimTimeoutRef.current)
+        clearTimeout(checkAnimTimeoutRef.current);
+      if (checkAnimTimeoutRef2.current)
+        clearTimeout(checkAnimTimeoutRef2.current);
+    };
+  }, []);
 
   const triggerCheckAnimation = () => {
     setShowCheck(true);
@@ -372,7 +389,7 @@ const QRScanner: React.FC = () => {
       friction: 5,
       useNativeDriver: true,
     }).start(() => {
-      setTimeout(() => {
+      checkAnimTimeoutRef.current = setTimeout(() => {
         Animated.timing(checkAnim, {
           toValue: 0,
           duration: 400,
@@ -439,7 +456,10 @@ const QRScanner: React.FC = () => {
         Alert.alert("Invalid QR Code", "Unable to process the QR code.");
       }
     },
-    [scanned, player, facing]
+    [
+      scanned,
+      // autoTestRunning
+    ]
   );
 
   // let notificationId = 0; // outside component, or use useRef for persistent ID
@@ -529,7 +549,7 @@ const QRScanner: React.FC = () => {
               styles.backButton,
               { position: "absolute", top: 20, left: 20 },
             ]}
-            onPress={() => router.push("/")}
+            onPress={() => router.replace("/")}
           >
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>

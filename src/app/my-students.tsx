@@ -74,7 +74,7 @@ export default function MyStudentsScreen() {
         <View style={styles.container}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.push("/")}
+            onPress={() => router.replace("/")}
           >
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
@@ -121,7 +121,7 @@ export default function MyStudentsScreen() {
                   You have no students yet, go add your first student!
                 </Text>
                 <TouchableOpacity
-                  onPress={() => router.push("/")}
+                  onPress={() => router.replace("/")}
                   style={{
                     backgroundColor: "#004A7C",
                     paddingVertical: 10,

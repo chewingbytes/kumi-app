@@ -411,7 +411,7 @@ export default function MyStudentsScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.push("/")}
+            onPress={() => router.replace("/")}
           >
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>

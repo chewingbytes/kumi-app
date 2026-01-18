@@ -72,7 +72,7 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.push("/")}
+            onPress={() => router.navigate("/")}
           >
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>

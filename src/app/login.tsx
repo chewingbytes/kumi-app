@@ -15,18 +15,25 @@ import { TextInput, Button } from "react-native-paper";
 import { supabase } from "../../lib/supabase";
 import { router } from "expo-router";
 
-AppState.addEventListener("change", (state) => {
-  if (state === "active") {
-    supabase.auth.startAutoRefresh();
-  } else {
-    supabase.auth.stopAutoRefresh();
-  }
-});
-
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Setup AppState listener with proper cleanup
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        supabase.auth.startAutoRefresh();
+      } else {
+        supabase.auth.stopAutoRefresh();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   async function signInWithEmail() {
     setLoading(true);

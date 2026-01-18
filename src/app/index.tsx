@@ -284,16 +284,16 @@ export default function HomeScreen() {
 
             <TouchableOpacity
               style={styles.scanButton}
-              onPress={() => router.push("/scanner")}
+              onPress={() => router.replace("/scanner")}
             >
               <Text style={styles.scanText}>Scan</Text>
             </TouchableOpacity>
             {dropdownVisible && (
               <View style={styles.dropdownMenu}>
-                <Pressable onPress={() => router.push("/student-list")}>
+                <Pressable onPress={() => router.replace("/student-list")}>
                   <Text style={styles.dropdownItem}>Student List</Text>
                 </Pressable>
-                <Pressable onPress={() => router.push("/profile")}>
+                <Pressable onPress={() => router.replace("/profile")}>
                   <Text style={styles.dropdownItem}>My Profile</Text>
                 </Pressable>
                 {/* <Pressable onPress={() => router.push("/my-students")}>
@@ -301,7 +301,7 @@ export default function HomeScreen() {
                 </Pressable> */}
                 <Pressable
                   onPress={() => {
-                    router.push("/student-management");
+                    router.replace("/student-management");
                     setDropdownVisible(false);
                   }}
                 >
