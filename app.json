@@ -63,12 +63,10 @@
       ]
     ],
     "extra": {
-      "EXPO_PUBLIC_API_BASE": "http://192.168.1.122:8080/",
+      "EXPO_PUBLIC_API_BASE": "https://kumonpunggolplaza.com/",
       "eas": {
         "projectId": "ac98a74c-03e4-4dee-9e04-acbdf735e2a7"
       }
     }
   }
 }
-
-//https://kumonpunggolplaza.com/
