@@ -17,31 +17,38 @@ const StudentCard = React.memo(({
       ]}
       onPress={() => onSelect(entry)}
     >
-      <View>
-        <Text style={[
+      <View style={{ flex: 1, flexDirection: "column", justifyContent: "center" }}>
+        <Text
+          style={[
           styles.cardTitle,
           isSelected && styles.selectedUnderline,
-        ]}>
+          ]}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
           {entry.student_name}
         </Text>
-
-        <Text style={[
+        <Text
+          style={[
           styles.statusText,
           entry.status === "checked_in" ? styles.checkedIn : styles.checkedOut,
-        ]}>
+          ]}
+        >
           {entry.status === "checked_in" ? "Checked In" : "Checked Out"}
         </Text>
       </View>
 
       {entry.status === "checked_out" && (
+        <View style={{ justifyContent: "center", alignItems: "flex-end" }}>
         <TouchableOpacity
-          style={[styles.button, { marginTop: 10, paddingVertical: 8 }]}
+            style={[styles.button, { marginTop: 0, paddingVertical: 8, alignSelf: "flex-end" }]}
           onPress={() => onNotify(entry)}
         >
           <Text style={styles.text}>
             {entry.parent_notified ? "Notify Again" : "Notify"}
           </Text>
         </TouchableOpacity>
+        </View>
       )}
     </Pressable>
   );

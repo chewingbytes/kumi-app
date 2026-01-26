@@ -37,7 +37,7 @@ import {
   Animated,
   FlatList,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
@@ -73,11 +73,23 @@ export default function HomeScreen() {
     return res.json();
   };
 
-  // const markParentNotified = (id) => {
-  //   setStudentsDashboard((prev) =>
-  //     prev.map((s) => (s.id === id ? { ...s, parent_notified: true } : s))
-  //   );
-  // };
+  const markParentNotified = (id) => {
+    setStudentsDashboard((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, parent_notified: true } : s))
+    );
+  };
+
+  const notificationTimeoutsRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
+  const notificationIdRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      Object.values(notificationTimeoutsRef.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+      notificationTimeoutsRef.current = {};
+    };
+  }, []);
 
   const postJSONWithBody = async (
     path: string,
@@ -96,96 +108,95 @@ export default function HomeScreen() {
     return res.json();
   };
 
-  // const fetchStudents = useCallback(async () => {
-  //   try {
-  //     const {
-  //       data: { session },
-  //     } = await supabase.auth.getSession();
+  const fetchStudents = useCallback(async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-  //     const accessToken = session?.access_token;
+      const accessToken = session?.access_token;
 
-  //     const res = await fetch(API + "api/db/homescreenstudents", {
-  //       method: "GET",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //         Authorization: `Bearer ${accessToken}`,
-  //       },
-  //     });
-  //     const json = await res.json();
-  //     if (json.error) throw new Error(json.error);
+      const res = await fetch(API + "api/db/students", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      setStudentsDashboard(json.students);
+    } catch (error) {
+      console.error("Error fetching students:", error.message);
+    }
+  }, []);
 
-  //     setStudentsDashboard(json.students);
-  //   } catch (error) {
-  //     console.error("Error fetching students:", error.message);
-  //   }
-  // }, []);
+  const showSendingNotification = useCallback((studentName: string) => {
+    const id = notificationIdRef.current++;
+    const message = `Sending to ${studentName}'s parents...`;
 
-  // const notificationIdRef = useRef(0);
+    setSuccessNotifications([{ id, message, color: "#ECECEC" }]);
 
-  // // 2. ALWAYS replace the previous notification (never stack)
-  // const showSendingNotification = useCallback((studentName: string) => {
-  //   const id = notificationIdRef.current++;
-  //   const message = `Sending to ${studentName}'s parents...`;
+    const timeoutId = setTimeout(() => {
+      setSuccessNotifications([]);
+      delete notificationTimeoutsRef.current[id];
+    }, 3000);
 
-  //   setSuccessNotifications([{ id, message, color: "#ECECEC" }]);
+    notificationTimeoutsRef.current[id] = timeoutId;
 
-  //   // auto-clear after 3s
-  //   setTimeout(() => {
-  //     setSuccessNotifications([]);
-  //   }, 3000);
+    return id;
+  }, []);
 
-  //   return id; // in case you need to replace it later
-  // }, []);
+  const showSuccessNotification = useCallback(
+    (studentName: string, result: boolean) => {
+      const id = notificationIdRef.current++;
 
-  // // 3. Success/Error notification — also replaces previous one
-  // const showSuccessNotification = useCallback(
-  //   (studentName: string, result: boolean) => {
-  //     const id = notificationIdRef.current++;
+      const message = result
+        ? `Message sent successfully to ${studentName}'s parents!`
+        : "An error occurred";
 
-  //     const message = result
-  //       ? `Message sent successfully to ${studentName}'s parents!`
-  //       : "An error occurred";
+      setSuccessNotifications([{ id, message, color: "#D4EDDA" }]);
 
-  //     setSuccessNotifications([{ id, message, color: "#D4EDDA" }]);
+      const timeoutId = setTimeout(() => {
+        setSuccessNotifications([]);
+        delete notificationTimeoutsRef.current[id];
+      }, 3000);
 
-  //     setTimeout(() => {
-  //       setSuccessNotifications([]);
-  //     }, 3000);
-  //   },
-  //   []
-  // );
+      notificationTimeoutsRef.current[id] = timeoutId;
+    },
+    []
+  );
 
-  // const sendWhatsappMessage = useCallback(async (name: string) => {
-  //   try {
-  //     const {
-  //       data: { session },
-  //     } = await supabase.auth.getSession();
+  const sendWhatsappMessage = useCallback(async (name: string) => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-  //     const accessToken = session?.access_token;
+      const accessToken = session?.access_token;
 
-  //     if (!accessToken) {
-  //       Alert.alert("Error", "No access token found. Please log in again.");
-  //       return;
-  //     }
+      if (!accessToken) {
+        Alert.alert("Error", "No access token found. Please log in again.");
+        return;
+      }
 
-  //     const res = await postJSONWithBody(
-  //       "api/db/sendMessage",
-  //       { name },
-  //       accessToken
-  //     );
-  //     console.log("REESS:", res);
+      const res = await postJSONWithBody(
+        "api/db/sendMessage",
+        { name },
+        accessToken
+      );
 
-  //     if (res === false) {
-  //       return false;
-  //     } else if (res === true) {
-  //       return true;
-  //     }
-  //   } catch (err) {
-  //     console.error("sendWhatsappMessage error:", err);
-  //     Alert.alert("Error", "Something went wrong while sending the message.");
-  //     return false;
-  //   }
-  // }, []);
+      if (res === false) {
+        return false;
+      } else if (res === true) {
+        return true;
+      }
+    } catch (err) {
+      console.error("sendWhatsappMessage error:", err);
+      Alert.alert("Error", "Something went wrong while sending the message.");
+      return false;
+    }
+  }, []);
 
   const finishDay = useCallback(async () => {
     const {
@@ -199,30 +210,40 @@ export default function HomeScreen() {
     setDropdownVisible(false);
   }, []);
 
-  // useEffect(() => {
-  //   fetchStudents();
-  // }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchStudents();
+    }, [fetchStudents])
+  );
 
-  // const renderStudent = useCallback(
-  //   ({ item }) => (
-  //     <StudentCard
-  //       //@ts-ignore
-  //       entry={item}
-  //       styles={styles}
-  //       sendWhatsappMessage={sendWhatsappMessage}
-  //       showSendingNotification={showSendingNotification}
-  //       showSuccessNotification={showSuccessNotification}
-  //       markParentNotified={markParentNotified}
-  //     />
-  //   ),
-  //   [
-  //     sendWhatsappMessage,
-  //     showSendingNotification,
-  //     showSuccessNotification,
-  //     markParentNotified,
-  //     styles,
-  //   ]
-  // );
+  const renderStudent = useCallback(
+    ({ item }) => (
+      <StudentCard
+        //@ts-ignore
+        entry={item}
+        styles={styles}
+        sendWhatsappMessage={sendWhatsappMessage}
+        showSendingNotification={showSendingNotification}
+        showSuccessNotification={showSuccessNotification}
+        markParentNotified={markParentNotified}
+        onNotify={async (student) => {
+          showSendingNotification(student.student_name);
+          const result = await sendWhatsappMessage(student.student_name);
+          if (result) {
+            showSuccessNotification(student.student_name, result);
+            markParentNotified(student.id);
+          }
+        }}
+      />
+    ),
+    [
+      sendWhatsappMessage,
+      showSendingNotification,
+      showSuccessNotification,
+      markParentNotified,
+      styles,
+    ]
+  );
 
   if (!fontsLoaded) {
     return null;
@@ -230,7 +251,7 @@ export default function HomeScreen() {
     return (
       <SafeAreaView style={[styles.container]}>
         <View style={styles.rowLayout}>
-          {/* <View style={styles.leftList}>
+          <View style={styles.leftList}>
             <Text style={styles.infoTitle}>Student List</Text>
             <TextInput
               placeholder="Search student..."
@@ -258,7 +279,12 @@ export default function HomeScreen() {
                 )
               }
             />
-          </View> */}
+            <View style={styles.totalCountContainer}>
+              <Text style={styles.totalCountText}>
+                Total Students: {filteredStudents.length}
+              </Text>
+            </View>
+          </View>
 
           {/* Hamburger Menu */}
           <View style={styles.rightContent}>
@@ -337,7 +363,7 @@ export default function HomeScreen() {
             )}
           </View>
         </View>
-        {/* <View
+        <View
           style={{
             position: "absolute",
             top: 20,
@@ -373,7 +399,7 @@ export default function HomeScreen() {
               </Text>
             </Animated.View>
           ))}
-        </View> */}
+        </View>
       </SafeAreaView>
     );
   }
@@ -768,7 +794,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 2,
     borderColor: "#1F3C88",
-    marginTop: 8,
+    marginTop: 12,
     alignItems: "flex-start",
   },
 
