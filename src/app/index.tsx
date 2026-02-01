@@ -198,17 +198,26 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const finishDay = useCallback(async () => {
+  const finishDay = useCallback(async (sendEmail: boolean = false) => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
 
     const accessToken = session?.access_token;
-    const res = await postJSON("api/db/finish-day", accessToken);
+    const res = await postJSONWithBody(
+      "api/db/finish-day",
+      { sendEmail },
+      accessToken
+    );
     if (res?.error) Alert.alert("Error", res.error);
-    else Alert.alert("Done", "Day finished and report sent.");
+    else {
+      const message = sendEmail
+        ? "Day finished and email sent."
+        : "Day finished and table cleared.";
+      Alert.alert("Done", message);
+    }
     setDropdownVisible(false);
-  }, []);
+  }, [postJSONWithBody]);
 
   useFocusEffect(
     useCallback(() => {
@@ -344,17 +353,29 @@ export default function HomeScreen() {
                 <Pressable
                   onPress={() => {
                     Alert.alert(
-                      "Are you sure?",
-                      "This will finish the day and email the attendance Excel report.",
+                      "Finish the Day",
+                      "Do you want to send the email report?",
                       [
-                        { text: "Cancel", style: "cancel" },
                         {
-                          text: "Yes, proceed",
-                          onPress: () => finishDay(),
+                          text: "No, just clear",
+                          style: "default",
+                          onPress: () => {
+                            finishDay(false);
+                          },
+                        },
+                        {
+                          text: "Yes, send email",
+                          style: "default",
+                          onPress: () => {
+                            finishDay(true);
+                          },
+                        },
+                        {
+                          text: "Cancel",
+                          style: "cancel",
                         },
                       ]
                     );
-                    setDropdownVisible(false);
                   }}
                 >
                   <Text style={styles.dropdownItem}>Finish the Day</Text>
