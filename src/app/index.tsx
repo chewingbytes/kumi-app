@@ -198,26 +198,17 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const finishDay = useCallback(async (sendEmail: boolean = false) => {
+  const finishDay = useCallback(async () => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
 
     const accessToken = session?.access_token;
-    const res = await postJSONWithBody(
-      "api/db/finish-day",
-      { sendEmail },
-      accessToken
-    );
+    const res = await postJSON("api/db/finish-day", accessToken);
     if (res?.error) Alert.alert("Error", res.error);
-    else {
-      const message = sendEmail
-        ? "Day finished and email sent."
-        : "Day finished and table cleared.";
-      Alert.alert("Done", message);
-    }
+    else Alert.alert("Done", "Day archived and check-ins cleared.");
     setDropdownVisible(false);
-  }, [postJSONWithBody]);
+  }, [postJSON]);
 
   useFocusEffect(
     useCallback(() => {
@@ -235,6 +226,7 @@ export default function HomeScreen() {
         showSendingNotification={showSendingNotification}
         showSuccessNotification={showSuccessNotification}
         markParentNotified={markParentNotified}
+        onRefresh={fetchStudents}
         onNotify={async (student) => {
           showSendingNotification(student.student_name);
           const result = await sendWhatsappMessage(student.student_name);
@@ -354,25 +346,13 @@ export default function HomeScreen() {
                   onPress={() => {
                     Alert.alert(
                       "Finish the Day",
-                      "Do you want to send the email report?",
+                      "This will archive and clear today's check-ins.",
                       [
+                        { text: "Cancel", style: "cancel" },
                         {
-                          text: "No, just clear",
-                          style: "default",
-                          onPress: () => {
-                            finishDay(false);
-                          },
-                        },
-                        {
-                          text: "Yes, send email",
-                          style: "default",
-                          onPress: () => {
-                            finishDay(true);
-                          },
-                        },
-                        {
-                          text: "Cancel",
-                          style: "cancel",
+                          text: "Proceed",
+                          style: "destructive",
+                          onPress: () => finishDay(),
                         },
                       ]
                     );

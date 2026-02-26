@@ -16,22 +16,31 @@ import { router } from "expo-router";
 export default function ProfileScreen() {
   const [user, setUser] = useState(null);
 
-  const handleLogout = () => {
-    Alert.alert("Confirm Logout", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          const { error } = await supabase.auth.signOut();
-          if (error) {
-            Alert.alert("Logout failed", error.message);
-          } else {
-            router.replace("/login");
-          }
-        },
-      },
-    ]);
+  // const handleLogout = () => {
+  //   Alert.alert("Confirm Logout", "Are you sure you want to log out?", [
+  //     { text: "Cancel", style: "cancel" },
+  //     {
+  //       text: "Logout",
+  //       style: "destructive",
+  //       onPress: async () => {
+  //         const { error } = await supabase.auth.signOut();
+  //         if (error) {
+  //           Alert.alert("Logout failed", error.message);
+  //         } else {
+  //           router.replace("/login");
+  //         }
+  //       },
+  //     },
+  //   ]);
+  // };
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      Alert.alert("Logout failed", error.message);
+    } else {
+      router.replace("/login");
+    }
   };
 
   useEffect(() => {
@@ -72,7 +81,7 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.navigate("/")}
+            onPress={() => router.replace("/")}
           >
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
