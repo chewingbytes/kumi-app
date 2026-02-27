@@ -24,7 +24,7 @@ export default function Dashboard() {
       try {
         const { data, error } = await supabase
           .from("students_checkin")
-          .select("name, checked_in, checked_out, parent_number");
+          .select("name, checked_in, checked_out, parent_number, duration");
 
         if (error) throw error;
         setStudents(data);
