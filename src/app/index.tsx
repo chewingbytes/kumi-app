@@ -51,7 +51,7 @@ export default function HomeScreen() {
 
   const filteredStudents = useMemo(() => {
     return studentsDashboard.filter((e) =>
-      e.student_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      e.student_name?.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [studentsDashboard, searchQuery]);
 
@@ -75,7 +75,7 @@ export default function HomeScreen() {
 
   const markParentNotified = (id) => {
     setStudentsDashboard((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, parent_notified: true } : s))
+      prev.map((s) => (s.id === id ? { ...s, parent_notified: true } : s)),
     );
   };
 
@@ -94,7 +94,7 @@ export default function HomeScreen() {
   const postJSONWithBody = async (
     path: string,
     body: object,
-    accessToken: string
+    accessToken: string,
   ) => {
     const res = await fetch(API + path, {
       method: "POST",
@@ -124,6 +124,8 @@ export default function HomeScreen() {
         },
       });
       const json = await res.json();
+
+      console.log("JSON:", json);
       if (json.error) throw new Error(json.error);
       setStudentsDashboard(json.students);
     } catch (error) {
@@ -164,7 +166,7 @@ export default function HomeScreen() {
 
       notificationTimeoutsRef.current[id] = timeoutId;
     },
-    []
+    [],
   );
 
   const sendWhatsappMessage = useCallback(async (name: string) => {
@@ -183,7 +185,7 @@ export default function HomeScreen() {
       const res = await postJSONWithBody(
         "api/db/sendMessage",
         { name },
-        accessToken
+        accessToken,
       );
 
       if (res === false) {
@@ -213,7 +215,7 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchStudents();
-    }, [fetchStudents])
+    }, [fetchStudents]),
   );
 
   const renderStudent = useCallback(
@@ -243,7 +245,7 @@ export default function HomeScreen() {
       showSuccessNotification,
       markParentNotified,
       styles,
-    ]
+    ],
   );
 
   if (!fontsLoaded) {
@@ -320,12 +322,10 @@ export default function HomeScreen() {
                 <Pressable onPress={() => router.replace("/student-list")}>
                   <Text style={styles.dropdownItem}>Student List</Text>
                 </Pressable>
-                <Pressable onPress={() => router.replace("/profile")}>
-                  <Text style={styles.dropdownItem}>My Profile</Text>
+                <Pressable onPress={() => router.replace("/history")}>
+                  <Text style={styles.dropdownItem}>History</Text>
                 </Pressable>
-                {/* <Pressable onPress={() => router.push("/my-students")}>
-                  <Text style={styles.dropdownItem}>My Students</Text>
-                </Pressable> */}
+                <View style={styles.separator} />
                 <Pressable
                   onPress={() => {
                     router.replace("/student-management");
@@ -334,6 +334,13 @@ export default function HomeScreen() {
                 >
                   <Text style={styles.dropdownItem}>Your Students</Text>
                 </Pressable>
+                <Pressable onPress={() => router.replace("/profile")}>
+                  <Text style={styles.dropdownItem}>My Profile</Text>
+                </Pressable>
+                {/* <Pressable onPress={() => router.push("/my-students")}>
+                  <Text style={styles.dropdownItem}>My Students</Text>
+                </Pressable> */}
+
                 {/* <Pressable
                   onPress={() => {
                     setModalVisible(true);
@@ -354,7 +361,7 @@ export default function HomeScreen() {
                           style: "destructive",
                           onPress: () => finishDay(),
                         },
-                      ]
+                      ],
                     );
                   }}
                 >
@@ -811,5 +818,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 16,
+  },
+  separator: {
+    borderBottomWidth: 1, // Use hairlineWidth for a thin, consistent line
+    backgroundColor: "#cccccc",
+    marginVertical: 6,
   },
 });

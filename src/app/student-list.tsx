@@ -283,8 +283,6 @@ export default function StudentListScreen() {
             <FlatList
               data={filteredStudents}
               keyExtractor={(item) => item.id.toString()}
-              initialNumToRender={10} // Only render 10 at first
-              maxToRenderPerBatch={5} // Add 5 more at a time as user scrolls
               windowSize={5} // Keep only a small amount of memory active
               removeClippedSubviews={true} // Unload items that are off-screen
               style={{ flex: 1 }}
