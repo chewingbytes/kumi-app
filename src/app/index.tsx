@@ -1,7 +1,7 @@
 //mac http://192.168.1.127:4000
 //http://192.168.0.203:4000/
 //http://46.62.157.49/
-import StudentCard from "../../components/StudentCard";
+import StudentCardHome from "../../components/StudentCardHome";
 import { useFonts } from "@expo-google-fonts/dynapuff/useFonts";
 import { DynaPuff_400Regular } from "@expo-google-fonts/dynapuff/400Regular";
 import { DynaPuff_500Medium } from "@expo-google-fonts/dynapuff/500Medium";
@@ -220,7 +220,7 @@ export default function HomeScreen() {
 
   const renderStudent = useCallback(
     ({ item }) => (
-      <StudentCard
+      <StudentCardHome
         //@ts-ignore
         entry={item}
         styles={styles}

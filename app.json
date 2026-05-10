@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#f0f9ff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kumonpunggolplaza.kumi"
@@ -22,7 +24,9 @@
         "foregroundImage": "https://nlsggkzpooovjifqcbig.supabase.co/storage/v1/object/public/image_storage/kumon/logoarm.png",
         "backgroundColor": "#f0f9ff"
       },
-      "permissions": ["android.permission.CAMERA"]
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
       "favicon": "https://nlsggkzpooovjifqcbig.supabassets/kumi-logo.png"
@@ -60,7 +64,8 @@
         {
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "extra": {
       "EXPO_PUBLIC_API_BASE": "https://kumonpunggolplaza.com/",

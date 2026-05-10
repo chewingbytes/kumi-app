@@ -1,8 +1,9 @@
 // src/app/history.tsx
-import React, { useEffect, useCallback, useState, useMemo } from "react";
+import React, { useEffect, useCallback, useMemo, useState, JSX } from "react";
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   FlatList,
   TouchableOpacity,
@@ -13,18 +14,25 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useFocusEffect } from "expo-router";
 import { supabase } from "../../lib/supabase";
 import Constants from "expo-constants";
-import { Ionicons } from "@expo/vector-icons";
+import {
+  CheckCheck,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle,
+  RefreshCw,
+} from "lucide-react-native";
 
 const API = Constants.expoConfig?.extra?.EXPO_PUBLIC_API_BASE;
 
 export default function HistoryScreen() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const formatTimestamp = (value?: string | null) => {
-    if (!value) return "-";
+    if (!value) return null;
     const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return "-";
+    if (Number.isNaN(d.getTime())) return null;
     return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -53,25 +61,9 @@ export default function HistoryScreen() {
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       
-      // Sort or filter if needed? User asked to display "every row".
-      // Assuming api returns current relevant rows.
-      // Show most recent first based on message timestamps or latest_interacted.
+      // Sort by latest message/read/sent/fail or latest_interacted fallback
       const rows = (json.students || []).slice();
-      rows.sort((a, b) => {
-        const aTime = new Date(
-          a.message_read_timestamp ||
-            a.message_sent_timestamp ||
-            a.message_failed_timestamp ||
-            a.latest_interacted || 0
-        ).getTime();
-        const bTime = new Date(
-          b.message_read_timestamp ||
-            b.message_sent_timestamp ||
-            b.message_failed_timestamp ||
-            b.latest_interacted || 0
-        ).getTime();
-        return bTime - aTime;
-      });
+
       setStudents(rows);
 
     } catch (error) {
@@ -82,6 +74,14 @@ export default function HistoryScreen() {
     }
   }, []);
 
+  const filteredStudents = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter((s) =>
+      s.student_name?.toLowerCase().includes(q)
+    );
+  }, [students, searchQuery]);
+
   useFocusEffect(
     useCallback(() => {
       fetchStudents();
@@ -89,59 +89,47 @@ export default function HistoryScreen() {
   );
 
   const renderItem = ({ item }) => {
-    // parent_notified: "READ", "DELIVERED", "FAILED", "SENT" or null/undefined
+    // parent_notified: "READ", "DELIVERED", "FAILED", or null/undefined
     const status = item.parent_notified?.toUpperCase() || "NOT SENT";
-    let statusColor = "#6B7280"; // Default neutral
-    let statusIcon: keyof typeof Ionicons.glyphMap = "help-circle-outline";
-    let subtitle = "";
+    let statusColor = "#666"; // Default gray
+    let statusIcon: JSX.Element = <HelpCircle size={16} color={statusColor} style={{ marginRight: 4 }} />;
 
     if (status === "READ") {
-      statusColor = "#16A34A";
-      statusIcon = "checkmark-done-circle-outline";
-      subtitle = `Read at ${formatTimestamp(item.message_read_timestamp)}`;
+      statusColor = "#155724"; // Greenish
+      statusIcon = <CheckCheck size={16} color={statusColor} style={{ marginRight: 4 }} />;
     } else if (status === "DELIVERED" || status === "SENT") {
-      statusColor = "#2563EB";
-      statusIcon = "checkmark-circle-outline";
-      subtitle = `Delivered at ${formatTimestamp(item.message_sent_timestamp)}`;
+      statusColor = "#004085"; // Blueish
+      statusIcon = <CheckCircle2 size={16} color={statusColor} style={{ marginRight: 4 }} />;
     } else if (status === "FAILED") {
-      statusColor = "#DC2626";
-      statusIcon = "alert-circle-outline";
-      subtitle = `Failed at ${formatTimestamp(item.message_failed_timestamp)}`;
-    } else {
-      subtitle = "No message activity yet.";
+      statusColor = "#721c24"; // Reddish
+      statusIcon = <AlertCircle size={16} color={statusColor} style={{ marginRight: 4 }} />;
     }
 
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.studentName}>{item.student_name}</Text>
-            <Text style={styles.subtitle}>{subtitle}</Text>
-          </View>
-          <View style={[styles.statusBadge, { borderColor: statusColor, backgroundColor: `${statusColor}15` }]}>
-            <Ionicons
-              name={statusIcon}
-              size={18}
-              color={statusColor}
-              style={{ marginRight: 6 }}
-            />
-            <Text style={[styles.statusText, { color: statusColor }]}>{status}</Text>
+          <Text style={styles.studentName}>{item.student_name}</Text>
+          <View style={[styles.statusBadge, { borderColor: statusColor }]}>
+            {statusIcon}
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {status}
+            </Text>
           </View>
         </View>
 
-        {/* Show any available message timestamps */}
+        {/* Message timeline pills, only showing non-null timestamps */}
         {(() => {
           const timeline = [] as Array<{ label: string; value: string }>;
-          if (item.message_sent_timestamp) {
-            timeline.push({ label: "Sent", value: formatTimestamp(item.message_sent_timestamp) });
-          }
-          if (item.message_read_timestamp) {
-            timeline.push({ label: "Read", value: formatTimestamp(item.message_read_timestamp) });
-          }
-          if (item.message_failed_timestamp) {
-            timeline.push({ label: "Failed", value: formatTimestamp(item.message_failed_timestamp) });
-          }
+          const sent = formatTimestamp(item.message_sent_timestamp);
+          const read = formatTimestamp(item.message_read_timestamp);
+          const failed = formatTimestamp(item.message_failed_timestamp);
+
+          if (sent) timeline.push({ label: "Sent", value: sent });
+          if (read) timeline.push({ label: "Read", value: read });
+          if (failed) timeline.push({ label: "Failed", value: failed });
+
           if (!timeline.length) return null;
+
           return (
             <View style={styles.timelineRow}>
               {timeline.map((entry, idx) => (
@@ -156,10 +144,8 @@ export default function HistoryScreen() {
 
         {(status === "FAILED" || item.failed_reason) && (
           <View style={styles.failureContainer}>
-            <Text style={styles.failedLabel}>Reason:</Text>
-            <Text style={styles.failedText}>
-              {item.failed_reason || "Unknown error"}
-            </Text>
+            <Text style={styles.failedLabel}>Reason: </Text>
+            <Text style={styles.failedText}>{item.failed_reason || "Unknown error"}</Text>
           </View>
         )}
       </View>
@@ -186,14 +172,24 @@ export default function HistoryScreen() {
           {loading ? (
              <ActivityIndicator color="#1F3C88" />
           ) : (
-            <Ionicons name="refresh" size={24} color="#1F3C88" />
+            <RefreshCw size={24} color="#1F3C88" />
           )}
         </TouchableOpacity>
       </View>
 
       <View style={styles.container}>
+        <TextInput
+          placeholder="Search student..."
+          placeholderTextColor="#4B5563"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          style={styles.searchInput}
+          autoCorrect={false}
+          autoCapitalize="none"
+          clearButtonMode="while-editing"
+        />
         <FlatList
-          data={students}
+          data={filteredStudents}
           renderItem={renderItem}
           keyExtractor={(item) => item.id?.toString()}
           contentContainerStyle={styles.listContent}
@@ -250,6 +246,18 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
   },
+  searchInput: {
+    borderWidth: 3,
+    borderColor: "#1F3C88",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    fontSize: 16,
+    fontFamily: "DynaPuff_400Regular",
+    color: "#1F3C88",
+    backgroundColor: "#fff",
+  },
   listContent: {
     paddingBottom: 20,
   },
@@ -274,12 +282,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "#1F3C88",
     fontFamily: "DynaPuff_400Regular",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#374151",
-    fontFamily: "DynaPuff_400Regular",
-    marginTop: 4,
   },
   statusBadge: {
     flexDirection: "row",
