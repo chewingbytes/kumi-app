@@ -64,6 +64,8 @@ export default function HistoryScreen() {
       // Sort by latest message/read/sent/fail or latest_interacted fallback
       const rows = (json.students || []).slice();
 
+      console.log("ROWS:", rows);
+
       setStudents(rows);
 
     } catch (error) {
@@ -90,7 +92,11 @@ export default function HistoryScreen() {
 
   const renderItem = ({ item }) => {
     // parent_notified: "READ", "DELIVERED", "FAILED", or null/undefined
-    const status = item.parent_notified?.toUpperCase() || "NOT SENT";
+
+    console.log("ITEM:", item);
+    const status = item.parent_notified || "NOT SENT";
+
+    console.log("STATUS:", status);
     let statusColor = "#666"; // Default gray
     let statusIcon: JSX.Element = <HelpCircle size={16} color={statusColor} style={{ marginRight: 4 }} />;
 
