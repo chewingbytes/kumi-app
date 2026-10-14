@@ -4,10 +4,10 @@
     "slug": "kumi-attendance",
     "scheme": "kumi",
     "version": "1.0.0",
-    "icon": "https://nlsggkzpooovjifqcbig.supabase.co/storage/v1/object/public/image_storage/kumon/logoarm.png",
+    "icon": "./assets/k2-min.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "https://nlsggkzpooovjifqcbig.supabase.co/storage/v1/object/public/image_storage/kumon/logoarm.png",
+      "image": "./assets/kumi-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#f0f9ff"
     },
@@ -21,15 +21,15 @@
     "android": {
       "package": "com.kumonpunggolplaza.kumi",
       "adaptiveIcon": {
-        "foregroundImage": "https://nlsggkzpooovjifqcbig.supabase.co/storage/v1/object/public/image_storage/kumon/logoarm.png",
-        "backgroundColor": "#f0f9ff"
+        "foregroundImage": "./assets/k2-min-adaptive.png",
+        "backgroundColor": "#4FBDE4"
       },
       "permissions": [
         "android.permission.CAMERA"
       ]
     },
     "web": {
-      "favicon": "https://nlsggkzpooovjifqcbig.supabassets/kumi-logo.png"
+      "favicon": "./assets/kumi-logo.png"
     },
     "experiments": {
       "reactCanary": true

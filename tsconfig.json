@@ -5,10 +5,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "baseUrl": "./",
-    "paths": {
-      "*": ["node_modules/*"]
-    }
+    "baseUrl": "./"
   },
   "include": [
     "src/**/*.ts",

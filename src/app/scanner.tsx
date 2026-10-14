@@ -21,9 +21,7 @@ import { Buffer } from "buffer";
 global.Buffer = global.Buffer || Buffer;
 import { supabase } from "../../lib/supabase";
 
-const audioSource = {
-  uri: "https://nlsggkzpooovjifqcbig.supabase.co/storage/v1/object/public/image_storage/dontdelete/ringwav.wav",
-};
+const audioSource = require("../../assets/ringwav.wav");
 
 // const TEST_STUDENTS = [
 //   "OH CHARMIAN",
